@@ -1,0 +1,20 @@
+# GJC runtime state
+.gjc/
+
+# Verification artifacts
+artifacts/
+quality-gate.json
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+*.log
