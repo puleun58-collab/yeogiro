@@ -1,4 +1,4 @@
-const APP_CACHE = 'yeogiro-app-v9';
+const APP_CACHE = 'yeogiro-app-v10';
 const MAP_CACHE = 'yeogiro-map-v1';
 const APP_SHELL = [
   '/',
