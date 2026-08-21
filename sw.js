@@ -1,8 +1,9 @@
-const APP_CACHE = 'yeogiro-app-v10';
+const APP_CACHE = 'yeogiro-app-v12';
 const MAP_CACHE = 'yeogiro-map-v1';
 const APP_SHELL = [
   '/',
   '/index.html',
+  '/sync.js',
   '/offline.html',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v7.png',
@@ -30,7 +31,13 @@ async function networkFirst(request) {
   const cache = await caches.open(APP_CACHE);
   try {
     const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
+    if (response.ok) {
+      cache.put(request, response.clone());
+      if (request.mode === 'navigate') {
+        cache.put('/index.html', response.clone());
+        cache.put('/', response.clone());
+      }
+    }
     return response;
   } catch {
     return (await cache.match(request)) || (await cache.match('/index.html')) || cache.match('/offline.html');

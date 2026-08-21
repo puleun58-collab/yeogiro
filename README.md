@@ -6,21 +6,25 @@
 
 ## 주요 기능
 
-- 여행별 일정·항공편 관리 및 `localStorage` 저장
-- OpenStreetMap 지도와 OSRM 이동 경로
-- PDF·이미지 예약 문서 AI 자동 입력
-- 예약 서류 보관, 알람, ICS 캘린더 내보내기
-- JSON 백업·복원 및 설치형 PWA 지원
+- 여행·일정·항공편·숙소 정보를 Cloudflare D1에 동기화
+- 소유자·편집자·보기 전용 권한을 지원하는 여행 공유 링크
+- IndexedDB 오프라인 캐시와 네트워크 복구 후 변경사항 동기화
+- PDF·이미지 예약 문서 AI 자동 입력과 기기 내 예약 서류 보관
+- 오늘 일정 요약, 이동 예상시간·충돌 경고, 이동수단별 지도 경로
+- 알람, 안정화된 ICS 캘린더, JSON v2 백업·복원, 설치형 PWA
 - 오프라인 앱 셸과 최근 지도 타일 캐시
 
 ## PWA
 
-지원 브라우저에서는 상단의 `앱 설치` 버튼으로 설치할 수 있습니다. 저장한 여행 데이터는 기기의 `localStorage`에 유지되며, 오프라인에서도 앱과 기존 일정을 열 수 있습니다. 지도, 경로 검색과 예약 문서 AI 분석은 네트워크 연결이 필요합니다.
+지원 브라우저에서는 상단의 `앱 설치` 버튼으로 설치할 수 있습니다. 최근 여행 데이터는 IndexedDB에 캐시되어 오프라인에서도 열 수 있고, 오프라인 변경사항은 연결이 복구되면 D1과 동기화됩니다. 지도, 경로 검색과 예약 문서 AI 분석은 네트워크 연결이 필요합니다.
+
+PDF·이미지는 비용이 발생할 수 있는 공용 객체 저장소를 사용하지 않고 각 기기의 IndexedDB에만 저장합니다. 공유 여행에서는 파일명과 연결 정보가 보이지만 원본 파일은 저장한 기기에서만 열 수 있습니다. 기존 `localStorage` 데이터는 최초 실행 시 D1·IndexedDB 구조로 자동 이전하며 안전을 위해 원본을 즉시 삭제하지 않습니다.
 
 ## 기술 구성
 
 - 순수 HTML, CSS, JavaScript
-- Cloudflare Workers, Workers AI, Static Assets
+- Cloudflare Workers, D1, Workers AI, Static Assets
+- IndexedDB 오프라인 캐시·파일 저장
 - Wrangler
 
 ## 서체
@@ -29,7 +33,11 @@
 
 ## 로컬 실행
 
-`index.html`을 브라우저에서 열거나 정적 파일 서버로 실행합니다.
+```bash
+npm install
+npx wrangler d1 migrations apply yeogiro-db --local
+npx wrangler dev --local
+```
 
 ## 배포
 

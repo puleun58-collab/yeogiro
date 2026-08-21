@@ -6,6 +6,14 @@
   "ai": {
     "binding": "AI"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yeogiro-db",
+      "database_id": "3db7aa4e-c325-4eae-8e24-a1621f2c4749",
+      "migrations_dir": "migrations"
+    }
+  ],
   "assets": {
     "binding": "ASSETS",
     "directory": "./dist",

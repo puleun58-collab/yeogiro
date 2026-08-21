@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "일정, 예약 서류와 이동 경로를 관리하는 여기로 여행 플래너",
   "scripts": {
-    "build": "node -e \"const f=require('fs');f.rmSync('dist',{recursive:true,force:true});f.mkdirSync('dist',{recursive:true});for(const file of ['index.html','offline.html','manifest.webmanifest','sw.js'])f.copyFileSync(file,'dist/'+file);f.mkdirSync('dist/assets',{recursive:true});for(const dir of ['icons','fonts'])f.cpSync('assets/'+dir,'dist/assets/'+dir,{recursive:true})\"",
-    "check": "node --check worker.js && node --check sw.js",
+    "build": "node -e \"const f=require('fs');f.rmSync('dist',{recursive:true,force:true});f.mkdirSync('dist',{recursive:true});for(const file of ['index.html','sync.js','offline.html','manifest.webmanifest','sw.js'])f.copyFileSync(file,'dist/'+file);f.mkdirSync('dist/assets',{recursive:true});for(const dir of ['icons','fonts'])f.cpSync('assets/'+dir,'dist/assets/'+dir,{recursive:true})\"",
+    "check": "node --check worker.js && node --check sync.js && node --check sw.js",
     "deploy": "npm run build && wrangler deploy"
   },
   "repository": {
