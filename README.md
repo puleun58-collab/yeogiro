@@ -23,6 +23,10 @@
 - Cloudflare Workers, Workers AI, Static Assets
 - Wrangler
 
+## 서체
+
+앱에는 LY Corp.의 `LINE Seed KR` Regular·Bold 웹폰트를 자체 포함합니다. 폰트는 SIL Open Font License 1.1로 제공되며 라이선스 전문은 `assets/fonts/OFL-LINE-Seed.txt`에 있습니다.
+
 ## 로컬 실행
 
 `index.html`을 브라우저에서 열거나 정적 파일 서버로 실행합니다.
