@@ -1,14 +1,14 @@
-const APP_CACHE = 'yeogiro-app-v7';
+const APP_CACHE = 'yeogiro-app-v8';
 const MAP_CACHE = 'yeogiro-map-v1';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/offline.html',
   '/manifest.webmanifest',
-  '/assets/icons/icon-192-v6.png',
-  '/assets/icons/icon-512-v6.png',
-  '/assets/icons/apple-touch-icon-v6.png',
-  '/assets/icons/favicon-32-v6.png',
+  '/assets/icons/icon-192-v7.png',
+  '/assets/icons/icon-512-v7.png',
+  '/assets/icons/apple-touch-icon-v7.png',
+  '/assets/icons/favicon-32-v7.png',
   '/assets/fonts/LINESeedKR-Regular.woff2',
   '/assets/fonts/LINESeedKR-Bold.woff2'
 ];
