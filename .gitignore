@@ -18,3 +18,8 @@ Desktop.ini
 *.tmp
 *.temp
 *.log
+
+# Node and Cloudflare
+node_modules/
+dist/
+.wrangler/

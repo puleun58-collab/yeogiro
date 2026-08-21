@@ -1,0 +1,23 @@
+{
+  "name": "yeogiro",
+  "version": "1.0.0",
+  "description": "여기로 여행 플래너",
+  "scripts": {
+    "build": "node -e \"const f=require('fs');f.rmSync('dist',{recursive:true,force:true});f.mkdirSync('dist');f.copyFileSync('index.html','dist/index.html')\"",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/puleun58-collab/yeogiro.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/puleun58-collab/yeogiro/issues"
+  },
+  "homepage": "https://github.com/puleun58-collab/yeogiro#readme",
+  "devDependencies": {
+    "wrangler": "^4.125.0"
+  }
+}
