@@ -72,6 +72,22 @@ export default {
         return json({ error: '문서 분석 중 오류가 발생했어요.' }, 500);
       }
     }
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    const headers = new Headers(response.headers);
+    headers.set('X-Content-Type-Options', 'nosniff');
+    headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (url.pathname === '/sw.js') {
+      headers.set('Cache-Control', 'no-cache');
+      headers.set('Service-Worker-Allowed', '/');
+    }
+    if (url.pathname === '/manifest.webmanifest') {
+      headers.set('Content-Type', 'application/manifest+json; charset=utf-8');
+      headers.set('Cache-Control', 'public, max-age=3600');
+    }
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   },
 };
