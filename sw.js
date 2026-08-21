@@ -1,14 +1,14 @@
-const APP_CACHE = 'yeogiro-app-v3';
+const APP_CACHE = 'yeogiro-app-v4';
 const MAP_CACHE = 'yeogiro-map-v1';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/offline.html',
   '/manifest.webmanifest',
-  '/assets/icons/icon-192.png',
-  '/assets/icons/icon-512.png',
-  '/assets/icons/apple-touch-icon.png',
-  '/assets/icons/favicon-32.png'
+  '/assets/icons/icon-192-v3.png',
+  '/assets/icons/icon-512-v3.png',
+  '/assets/icons/apple-touch-icon-v3.png',
+  '/assets/icons/favicon-32-v3.png'
 ];
 
 self.addEventListener('install', event => {
