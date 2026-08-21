@@ -16,7 +16,16 @@
 
 ## PWA
 
-지원 브라우저에서는 상단의 `앱 설치` 버튼으로 설치할 수 있습니다. 최근 여행 데이터는 IndexedDB에 캐시되어 오프라인에서도 열 수 있고, 오프라인 변경사항은 연결이 복구되면 D1과 동기화됩니다. 지도, 경로 검색과 예약 문서 AI 분석은 네트워크 연결이 필요합니다.
+설정의 `앱으로 설치`에서 플랫폼에 맞는 설치 흐름을 제공합니다.
+
+- Android Chrome·Samsung Internet: 설치 가능한 상태이면 시스템 앱 설치창을 실행합니다.
+- iPhone·iPad Safari: Safari 공유 아이콘을 누르고 `홈 화면에 추가` → `웹 앱으로 열기` → `추가` 순서로 설치합니다.
+- 카카오톡 등 iOS 인앱 브라우저: `Safari로 열기`를 먼저 선택합니다. 메뉴가 없을 때는 앱에서 주소를 복사해 Safari로 열 수 있습니다.
+- 이미 설치된 앱에서는 중복 설치 안내를 표시하지 않습니다.
+
+iOS Safari의 `홈 화면에 추가` 메뉴는 웹페이지에서 강제로 열 수 없으므로 앱 안에서 실제 공유 아이콘 위치와 설치 순서를 안내합니다. 자세한 절차는 [Apple의 iPhone 웹 앱 설치 안내](https://support.apple.com/guide/iphone/iphea86e5236/ios)를 참고하세요.
+
+최근 여행 데이터는 IndexedDB에 캐시되어 오프라인에서도 열 수 있고, 오프라인 변경사항은 연결이 복구되면 D1과 동기화됩니다. 지도, 경로 검색과 예약 문서 AI 분석은 네트워크 연결이 필요합니다.
 
 PDF·이미지는 비용이 발생할 수 있는 공용 객체 저장소를 사용하지 않고 각 기기의 IndexedDB에만 저장합니다. 공유 여행에서는 파일명과 연결 정보가 보이지만 원본 파일은 저장한 기기에서만 열 수 있습니다. 기존 `localStorage` 데이터는 최초 실행 시 D1·IndexedDB 구조로 자동 이전하며 안전을 위해 원본을 즉시 삭제하지 않습니다.
 
@@ -43,5 +52,8 @@ npx wrangler dev --local
 
 ```bash
 npm install
+npx wrangler d1 migrations apply yeogiro-db --remote
 npm run deploy
 ```
+
+배포 설정에는 D1 `DB`, Workers AI `AI`, Static Assets `ASSETS` 바인딩이 필요합니다. R2는 활성화하지 않으며 PDF와 이미지는 각 기기의 IndexedDB에 저장합니다.
