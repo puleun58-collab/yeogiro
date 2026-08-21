@@ -121,7 +121,7 @@ async function redeemInvite(request,env){
   if(!invite)return json({error:'초대 링크가 만료되었거나 비활성화되었습니다.'},404);const accessToken=randomToken(),memberId=id('mem'),stamp=now();
   await env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?)`).bind(memberId,invite.trip_id,clean(body.displayName,80)||'동행자',invite.role,await hash(accessToken),stamp,stamp).run();return json({trip:await loadTrip(env,invite.trip_id),tripId:invite.trip_id,accessToken,role:invite.role},201);
 }
-async function accessList(env,tripId){const [m,i]=await Promise.all([env.DB.prepare(`SELECT id,display_name,role,created_at,last_seen_at FROM members WHERE trip_id=? AND revoked_at IS NULL ORDER BY created_at`).bind(tripId).all(),env.DB.prepare(`SELECT id,role,expires_at,created_at FROM invites WHERE trip_id=? AND revoked_at IS NULL ORDER BY created_at DESC`).bind(tripId).all()]);return{members:m.results,invites:i.results}}
+async function accessList(env,tripId){const [m,i]=await Promise.all([env.DB.prepare(`SELECT id,display_name,role,created_at,last_seen_at FROM members WHERE trip_id=? AND revoked_at IS NULL ORDER BY created_at`).bind(tripId).all(),env.DB.prepare(`SELECT id,role,expires_at,created_at FROM invites WHERE trip_id=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) ORDER BY created_at DESC`).bind(tripId,now()).all()]);return{members:m.results,invites:i.results}}
 
 function stripCodeFence(value){const cleaned=value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');const start=cleaned.indexOf('{'),end=cleaned.lastIndexOf('}');return start>=0&&end>start?cleaned.slice(start,end+1):cleaned}
 async function analyzeDocument(request,env){
