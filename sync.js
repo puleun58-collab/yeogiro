@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const DB_NAME='yeogiro-cache-v2', DB_VERSION=1, STATE_KEY='app-state';
+const DB_NAME='yeogiro-cache-v2', DB_VERSION=1, STATE_KEY='app-state', MAX_HERO_SIZE=1536*1024;
 let dbPromise, deviceId='', stateRef=null, remoteHandler=null, syncTimer=null, syncing=false;
 const status={online:navigator.onLine,lastSync:'',pending:0,message:'준비 중',roleByTrip:{}};
 
@@ -42,11 +42,12 @@ function mergeRemote(remote,local){
 async function request(path,options={},token=''){const headers=new Headers(options.headers||{});if(token)headers.set('Authorization',`Bearer ${token}`);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');const response=await fetch(path,{...options,headers});let body=null;try{body=await response.json()}catch{}if(!response.ok){const error=new Error(body?.error||'서버 요청에 실패했습니다.');error.status=response.status;error.body=body;throw error}return body}
 async function session(tripId){return get('sessions',tripId)}
 async function cacheState(){if(stateRef)await put('cache',stateRef,STATE_KEY)}
+async function syncHero(trip,s){if(!trip.heroFileId)return;const value=await get('files',trip.heroFileId);if(!value?.blob||value.uploadedFileId===trip.heroFileId)return;const form=new FormData;form.append('file',value.blob,'trip-cover.jpg');form.append('fileId',trip.heroFileId);const response=await fetch(`/api/trips/${encodeURIComponent(trip.id)}/hero`,{method:'PUT',headers:{Authorization:`Bearer ${s.token}`},body:form});let body=null;try{body=await response.json()}catch{}if(!response.ok)throw new Error(body?.error||'배경 사진을 공유하지 못했습니다.');value.uploadedFileId=trip.heroFileId;await put('files',value)}
 
 async function pushTrip(trip){
   let s=await session(trip.id);
-  if(!s){const result=await request('/api/trips',{method:'POST',body:JSON.stringify({trip:serverTrip(trip),displayName:'소유자'})});s={tripId:trip.id,token:result.accessToken,role:result.role,revision:result.trip.revision};await put('sessions',s);status.roleByTrip[trip.id]=s.role;return result.trip}
-  try{const result=await request(`/api/trips/${encodeURIComponent(trip.id)}`,{method:'PUT',body:JSON.stringify({trip:serverTrip(trip),baseRevision:s.revision||trip.revision||1})},s.token);s.revision=result.trip.revision;s.role=result.role;await put('sessions',s);status.roleByTrip[trip.id]=s.role;return result.trip}
+  if(!s){const result=await request('/api/trips',{method:'POST',body:JSON.stringify({trip:serverTrip(trip),displayName:'소유자'})});s={tripId:trip.id,token:result.accessToken,role:result.role,revision:result.trip.revision};await put('sessions',s);status.roleByTrip[trip.id]=s.role;await syncHero(trip,s);return result.trip}
+  try{const result=await request(`/api/trips/${encodeURIComponent(trip.id)}`,{method:'PUT',body:JSON.stringify({trip:serverTrip(trip),baseRevision:s.revision||trip.revision||1})},s.token);s.revision=result.trip.revision;s.role=result.role;await put('sessions',s);status.roleByTrip[trip.id]=s.role;await syncHero(trip,s);return result.trip}
   catch(error){if(error.status===409&&error.body?.trip){window.dispatchEvent(new CustomEvent('yeogiro:conflict',{detail:{local:trip,remote:error.body.trip,tripId:trip.id}}));throw error}if(error.status===401){await del('sessions',trip.id);status.roleByTrip[trip.id]='';}throw error}
 }
 async function flush(){
@@ -68,6 +69,9 @@ async function persist(state){
 }
 async function addFiles(files,entityType,entityId){const result=[];for(const file of files){if(!file.size)continue;if(file.size>25*1024*1024)throw new Error('파일은 25MB 이하만 저장할 수 있습니다.');result.push(await saveBlob(file,file.name,entityType,entityId))}return result}
 async function fileUrl(fileId){const value=await get('files',fileId);return value?.blob?URL.createObjectURL(value.blob):''}
+async function fileBlob(fileId){const value=await get('files',fileId);return value?.blob||null}
+async function setHero(blob,tripId){if(!blob.size||blob.size>MAX_HERO_SIZE)throw new Error('공유 배경 사진은 1.5MB 이하여야 합니다.');return saveBlob(blob,'여행 대표사진','trip',tripId)}
+async function heroUrl(tripId,fileId){let value=await get('files',fileId);if(value?.blob)return URL.createObjectURL(value.blob);if(!navigator.onLine)return'';const s=await session(tripId);if(!s)return'';const response=await fetch(`/api/trips/${encodeURIComponent(tripId)}/hero`,{headers:{Authorization:`Bearer ${s.token}`}});if(!response.ok)return'';const blob=await response.blob();value={id:fileId,entityType:'trip',entityId:tripId,name:'여행 대표사진',mime:blob.type,size:blob.size,deviceId:'shared',blob,uploadedFileId:fileId};await put('files',value);return URL.createObjectURL(blob)}
 async function exportBackup(state){const copy=structuredClone(state);for(const trip of copy.trips||[])for(const item of trip.items||[])for(const doc of item.userDocs||[]){const value=await get('files',doc.id);if(value?.blob)doc.data=await blobDataUrl(value.blob)}for(const trip of copy.trips||[]){if(trip.heroFileId){const value=await get('files',trip.heroFileId);if(value?.blob)trip.heroData=await blobDataUrl(value.blob)}}return{format:'yeogiro-backup-v2',exportedAt:new Date().toISOString(),state:copy}}
 async function importBackup(value){const incoming=value?.format==='yeogiro-backup-v2'?value.state:value;return migrateLegacy(incoming)}
 async function share(role='editor'){const t=stateRef.trips.find(x=>x.id===stateRef.activeId),s=await session(t.id);if(!s)throw new Error('먼저 여행 동기화를 완료해 주세요.');const result=await request(`/api/trips/${encodeURIComponent(t.id)}/invites`,{method:'POST',body:JSON.stringify({role,expiresInDays:7})},s.token);return `${location.origin}${location.pathname}?invite=${encodeURIComponent(result.token)}`}
@@ -77,5 +81,5 @@ function onRemote(handler){remoteHandler=handler}
 function useRemote(tripId,remote){const index=stateRef.trips.findIndex(x=>x.id===tripId);if(index>=0)stateRef.trips[index]=mergeRemote(remote,stateRef.trips[index]);del('outbox',tripId);cacheState();if(remoteHandler)remoteHandler(stateRef)}
 
 addEventListener('online',()=>{setStatus('온라인 · 동기화 중');flush();pullAll()});addEventListener('offline',()=>setStatus('오프라인'));
-window.YeogiroStore={bootstrap,persist,addFiles,fileUrl,exportBackup,importBackup,share,access,revoke,onRemote,useRemote,pull:pullAll,flush,status:()=>({...status}),device:()=>deviceId};
+window.YeogiroStore={bootstrap,persist,addFiles,fileUrl,fileBlob,setHero,heroUrl,exportBackup,importBackup,share,access,revoke,onRemote,useRemote,pull:pullAll,flush,status:()=>({...status}),device:()=>deviceId};
 })();

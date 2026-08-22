@@ -1,4 +1,5 @@
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
+const MAX_HERO_SIZE = 1536 * 1024;
 const ALLOWED_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
 
 function json(data, status = 200) {
@@ -123,6 +124,31 @@ async function redeemInvite(request,env){
 }
 async function accessList(env,tripId){const [m,i]=await Promise.all([env.DB.prepare(`SELECT id,display_name,role,created_at,last_seen_at FROM members WHERE trip_id=? AND revoked_at IS NULL ORDER BY created_at`).bind(tripId).all(),env.DB.prepare(`SELECT id,role,expires_at,created_at FROM invites WHERE trip_id=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) ORDER BY created_at DESC`).bind(tripId,now()).all()]);return{members:m.results,invites:i.results}}
 
+async function tripHero(request,env,tripId,member){
+  if(request.method==='GET'){
+    const row=await env.DB.prepare('SELECT file_id,mime,data FROM trip_hero_images WHERE trip_id=?').bind(tripId).first();
+    if(!row)return json({error:'공유된 배경 사진이 없습니다.'},404);
+    return new Response(row.data,{headers:{'Content-Type':row.mime,'Cache-Control':'private, max-age=3600','ETag':`"${row.file_id}"`}})
+  }
+  if(request.method==='PUT'){
+    if(!canEdit(member))return json({error:'보기 전용 여행은 배경을 변경할 수 없습니다.'},403);
+    const form=await request.formData(),file=form.get('file'),fileId=clean(form.get('fileId'),100);
+    if(!(file instanceof File)||!fileId)return json({error:'배경 사진과 파일 ID가 필요합니다.'},400);
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type))return json({error:'JPG, PNG, WEBP 사진만 사용할 수 있습니다.'},415);
+    if(!file.size||file.size>MAX_HERO_SIZE)return json({error:'공유 배경 사진은 1.5MB 이하여야 합니다.'},413);
+    if(!(await validMagic(file)))return json({error:'사진 형식과 실제 내용이 일치하지 않습니다.'},415);
+    const stamp=now(),data=await file.arrayBuffer();
+    await env.DB.prepare(`INSERT INTO trip_hero_images (trip_id,file_id,mime,size,data,updated_by_member_id,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(trip_id) DO UPDATE SET file_id=excluded.file_id,mime=excluded.mime,size=excluded.size,data=excluded.data,updated_by_member_id=excluded.updated_by_member_id,updated_at=excluded.updated_at`).bind(tripId,fileId,file.type,file.size,data,member.id,stamp).run();
+    return json({fileId,mime:file.type,size:file.size,updatedAt:stamp})
+  }
+  if(request.method==='DELETE'){
+    if(member.role!=='owner')return json({error:'소유자만 공유 배경을 삭제할 수 있습니다.'},403);
+    await env.DB.prepare('DELETE FROM trip_hero_images WHERE trip_id=?').bind(tripId).run();
+    return new Response(null,{status:204})
+  }
+  return json({error:'지원하지 않는 요청입니다.'},405)
+}
+
 function stripCodeFence(value){const cleaned=value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');const start=cleaned.indexOf('{'),end=cleaned.lastIndexOf('}');return start>=0&&end>start?cleaned.slice(start,end+1):cleaned}
 async function analyzeDocument(request,env){
   if(await rateLimited(request,env,'analyze',10,600))return json({error:'문서 분석 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429);const form=await request.formData(),file=form.get('file');if(!(file instanceof File))return json({error:'파일을 선택해 주세요.'},400);if(!ALLOWED_TYPES.has(file.type))return json({error:'PDF, JPG, PNG, WEBP 파일만 지원합니다.'},415);if(!file.size||file.size>MAX_FILE_SIZE)return json({error:'파일은 8MB 이하만 업로드할 수 있습니다.'},413);if(!(await validMagic(file)))return json({error:'파일 형식과 실제 내용이 일치하지 않습니다.'},415);
@@ -134,8 +160,9 @@ async function analyzeDocument(request,env){
 async function api(request,env,url){
   if(url.pathname==='/api/trips'&&request.method==='POST')return await rateLimited(request,env,'create-trip',30,86400)?json({error:'여행 생성 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):createTrip(request,env);if(url.pathname==='/api/invites/redeem'&&request.method==='POST')return await rateLimited(request,env,'redeem',30,600)?json({error:'초대 확인 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):redeemInvite(request,env);
   const match=url.pathname.match(/^\/api\/trips\/([^/]+)(?:\/(.*))?$/);if(!match)return json({error:'API 경로를 찾을 수 없습니다.'},404);const tripId=decodeURIComponent(match[1]),action=match[2]||'',member=await memberFor(request,env,tripId);if(!member)return json({error:'이 여행에 접근할 권한이 없습니다.'},401);
+  if(action==='hero'&&['GET','PUT','DELETE'].includes(request.method))return tripHero(request,env,tripId,member);
   if(!action&&request.method==='GET')return json({trip:await loadTrip(env,tripId),role:member.role});if(!action&&request.method==='PUT')return updateTrip(request,env,tripId,member);
-  if(!action&&request.method==='DELETE'){if(member.role!=='owner')return json({error:'소유자만 여행을 삭제할 수 있습니다.'},403);await env.DB.prepare('UPDATE trips SET deleted_at=?,updated_at=? WHERE id=?').bind(now(),now(),tripId).run();return new Response(null,{status:204})}
+  if(!action&&request.method==='DELETE'){if(member.role!=='owner')return json({error:'소유자만 여행을 삭제할 수 있습니다.'},403);await env.DB.batch([env.DB.prepare('DELETE FROM trip_hero_images WHERE trip_id=?').bind(tripId),env.DB.prepare('UPDATE trips SET deleted_at=?,updated_at=? WHERE id=?').bind(now(),now(),tripId)]);return new Response(null,{status:204})}
   if(action==='invites'&&request.method==='POST')return createInvite(request,env,tripId,member);if(action==='access'&&request.method==='GET')return member.role==='owner'?json(await accessList(env,tripId)):json({error:'소유자만 공유 설정을 볼 수 있습니다.'},403);
   const ri=action.match(/^invites\/([^/]+)$/),rm=action.match(/^members\/([^/]+)$/);if(ri&&request.method==='DELETE'&&member.role==='owner'){await env.DB.prepare('UPDATE invites SET revoked_at=? WHERE id=? AND trip_id=?').bind(now(),ri[1],tripId).run();return new Response(null,{status:204})}if(rm&&request.method==='DELETE'&&member.role==='owner'){if(rm[1]===member.id)return json({error:'자신의 소유자 권한은 제거할 수 없습니다.'},400);await env.DB.prepare('UPDATE members SET revoked_at=? WHERE id=? AND trip_id=?').bind(now(),rm[1],tripId).run();return new Response(null,{status:204})}return json({error:'지원하지 않는 요청입니다.'},405)
 }
