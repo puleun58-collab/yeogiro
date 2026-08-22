@@ -10,7 +10,7 @@ const ui = context.window.createYeogiroSyncUI({ openSheet: html => { sheet = htm
 const element = { textContent: '', dataset: {}, title: '' };
 
 ui.paint(currentStatus, element);
-assert.equal(element.textContent, '✓ 동기화됨');
+assert.equal(element.textContent, '동기화됨');
 ui.paint({ ...currentStatus, phase: 'syncing' }, element);
 assert.equal(element.textContent, '↻ 동기화 중');
 ui.paint({ ...currentStatus, pending: 3 }, element);
@@ -30,4 +30,3 @@ assert.match(sheet, /일정 1개/);
 assert.match(sheet, /서버 최신 내용 사용/);
 assert.match(sheet, /내 변경사항 다시 적용/);
 console.log('8 sync UI checks passed');
-

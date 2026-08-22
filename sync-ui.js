@@ -16,12 +16,12 @@
       const status = YeogiroStore.status();
       if (status.conflict) { conflict(status.conflict); return; }
       const last = status.lastSync ? new Date(status.lastSync).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '아직 없음';
-      const headline = !status.online ? '● 오프라인' : status.phase === 'syncing' ? '↻ 동기화 중' : status.pending ? `↑ ${status.pending}건 대기` : '✓ 모든 변경사항이 저장되었습니다.';
+      const headline = !status.online ? '● 오프라인' : status.phase === 'syncing' ? '↻ 동기화 중' : status.pending ? `↑ ${status.pending}건 대기` : '모든 변경사항이 저장되었습니다.';
       const body = !status.online ? `변경사항 ${status.pending}건이 이 기기에 안전하게 저장되어 있습니다.<br>인터넷 연결 후 자동으로 동기화됩니다.` : status.pending ? '저장 대기 중인 변경사항은 자동으로 다시 전송됩니다.' : '대기 중인 변경사항 없음';
       openSheet(`<h2>동기화 상태</h2><div class="form"><div class="help-card"><b>${headline}</b>${body}</div><p class="memo">마지막 동기화 ${last}</p>${status.online ? '<button class="save" data-sync-now>지금 동기화</button>' : ''}<button class="cancel" data-close>닫기</button></div>`);
     }
     function paint(status, element) {
-      element.textContent = status.conflict ? '⚠ 확인 필요' : !status.online ? '● 오프라인' : status.phase === 'syncing' ? '↻ 동기화 중' : status.pending ? `↑ ${status.pending}건 대기` : '✓ 동기화됨';
+      element.textContent = status.conflict ? '⚠ 확인 필요' : !status.online ? '● 오프라인' : status.phase === 'syncing' ? '↻ 동기화 중' : status.pending ? `↑ ${status.pending}건 대기` : '동기화됨';
       element.dataset.state = status.conflict ? 'conflict' : !status.online ? 'offline' : status.pending ? 'pending' : 'online';
       element.title = status.message;
     }
