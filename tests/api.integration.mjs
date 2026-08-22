@@ -35,7 +35,7 @@ async function api(path, { method = 'GET', token = '', body, headers = {} } = {}
 }
 
 function trip(id) {
-  return { id, title: '통합 테스트 여행', start: '2026-08-22', end: '2026-08-24', note: '', cities: ['서울'], heroFileId: '', items: [], flights: [], lodgings: [], files: [] };
+  return { id, title: '통합 테스트 여행', start: '2026-08-22', end: '2026-08-24', note: '', cities: ['서울'], heroFileId: '', items: [{ id: `${id}_item`, day: '2026-08-22', time: '10:00', endTime: '11:15', preparationMinutes: 20, cat: '명소', name: '테스트 일정', place: '', mapUrl: '', memo: '', move: '도보', alarm: '', lat: null, lng: null, userDocs: [] }], flights: [], lodgings: [], files: [] };
 }
 
 wrangler(['d1', 'migrations', 'apply', 'yeogiro-db', '--local', '--persist-to', persist]);
@@ -53,6 +53,7 @@ try {
   const created = await api('/api/trips', { method: 'POST', body: { trip: trip(id), displayName: '테스트 소유자' } });
   assert.equal(created.response.status, 201, '여행 생성 성공');
   assert.equal(created.data.role, 'owner', 'owner 권한 정상');
+  assert.deepEqual({ endTime: created.data.trip.items[0].endTime, preparationMinutes: created.data.trip.items[0].preparationMinutes }, { endTime: '11:15', preparationMinutes: 20 }, '일정 종료·준비시간 저장 및 조회');
   const owner = created.data.accessToken;
 
   const invalid = await api(`/api/trips/${id}`, { token: 'not-a-valid-token' });
@@ -103,7 +104,7 @@ try {
   assert.equal(limited.response.status, 429, 'rate limit 정상 동작');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: owner });
-  console.log('14 API integration checks passed');
+  console.log('15 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;

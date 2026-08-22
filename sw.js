@@ -1,4 +1,4 @@
-const APP_CACHE = 'yeogiro-app-v17';
+const APP_CACHE = 'yeogiro-app-v21';
 const MAP_CACHE = 'yeogiro-map-v2';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
@@ -6,6 +6,7 @@ const APP_SHELL = [
   '/index.html',
   '/sync.js',
   '/sync-ui.js',
+  '/travel-logic.js',
   '/offline.html',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v7.png',
@@ -42,7 +43,10 @@ async function networkFirst(request) {
     }
     return response;
   } catch {
-    return (await cache.match(request)) || (await cache.match('/index.html')) || cache.match('/offline.html');
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    if (request.mode === 'navigate') return (await cache.match('/index.html')) || cache.match('/offline.html');
+    return new Response('', { status: 503, statusText: 'Offline' });
   }
 }
 
@@ -78,7 +82,8 @@ self.addEventListener('fetch', event => {
   }
 
   if (url.origin === self.location.origin) {
-    event.respondWith(cacheFirst(request, APP_CACHE));
+    const appCode = /\.(?:js|css)$/.test(url.pathname);
+    event.respondWith(appCode ? networkFirst(request) : cacheFirst(request, APP_CACHE));
   }
 });
 
