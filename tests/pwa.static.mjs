@@ -5,7 +5,7 @@ const source = readFileSync('sw.js', 'utf8');
 assert.match(source, /url\.pathname\.startsWith\('\/api\/'\)\) return;/, 'API requests bypass Service Worker caches');
 assert.match(source, /MAX_MAP_ENTRIES\s*=\s*160/, 'map tile cache has a fixed upper bound');
 assert.match(source, /cache\.keys\(\)/, 'map cache is trimmed after writes');
-assert.match(source, /yeogiro-app-v21/, 'app shell cache version was advanced');
+assert.match(source, /yeogiro-app-v22/, 'app shell cache version was advanced');
 assert.match(source, /'\/travel-logic\.js'/, 'travel state logic remains available offline');
 assert.match(source, /appCode \? networkFirst\(request\) : cacheFirst\(request, APP_CACHE\)/, 'online app code bypasses stale cache entries');
 console.log('6 PWA cache checks passed');
