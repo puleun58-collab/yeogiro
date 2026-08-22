@@ -23,6 +23,8 @@
     function paint(status, element) {
       element.textContent = status.conflict ? '⚠ 확인 필요' : !status.online ? '● 오프라인' : status.phase === 'syncing' ? '↻ 동기화 중' : status.pending ? `↑ ${status.pending}건 대기` : '동기화됨';
       element.dataset.state = status.conflict ? 'conflict' : !status.online ? 'offline' : status.pending ? 'pending' : 'online';
+      element.dataset.phase = status.phase || 'idle';
+      element.ariaLabel = element.textContent;
       element.title = status.message;
     }
     return { conflict, details, paint };
