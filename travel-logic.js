@@ -129,5 +129,14 @@
     return Math.max(0, Math.round((new Date(`${arriveDate}T00:00:00`) - new Date(`${departDate}T00:00:00`)) / 86400000));
   }
 
-  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, tripPhase, flightDayDelta };
+  function terminalInfo(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(?:t(?:erminal)?\s*)?(\d+[a-z]?)$/i) || raw.match(/^제?\s*(\d+[a-z]?)\s*터미널$/i);
+    const number = match?.[1]?.toUpperCase();
+    return raw
+      ? { text: number ? `T${number}` : raw, label: number ? `터미널 ${number}` : `터미널 ${raw}` }
+      : { text: '', label: '' };
+  }
+
+  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, tripPhase, flightDayDelta, terminalInfo };
 });

@@ -53,8 +53,12 @@ const conflict = travel.assessGap(
 assert.equal(conflict.level, 'conflict');
 
 assert.equal(travel.flightDayDelta('2026-08-22', '2026-08-23'), 1);
+assert.deepEqual(travel.terminalInfo('1'), { text: 'T1', label: '터미널 1' });
+assert.deepEqual(travel.terminalInfo('Terminal 2'), { text: 'T2', label: '터미널 2' });
+assert.deepEqual(travel.terminalInfo('제1터미널'), { text: 'T1', label: '터미널 1' });
+assert.deepEqual(travel.terminalInfo('North'), { text: 'North', label: '터미널 North' });
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-21'), 'before');
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-23'), 'during');
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-25'), 'after');
 
-console.log('20 travel logic checks passed');
+console.log('24 travel logic checks passed');

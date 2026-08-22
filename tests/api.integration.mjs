@@ -5,6 +5,7 @@ const port = 8791;
 const base = `http://127.0.0.1:${port}`;
 const persist = '.wrangler/test-state';
 const npmCommand = 'npx';
+const runIp = `test-${process.pid}-${Date.now()}`;
 const quote = value => /[\s"]/u.test(String(value)) ? `"${String(value).replace(/"/g, '""')}"` : String(value);
 const commandLine = args => [npmCommand, 'wrangler', ...args].map(quote).join(' ');
 
@@ -26,6 +27,7 @@ async function waitForServer() {
 
 async function api(path, { method = 'GET', token = '', body, headers = {} } = {}) {
   const requestHeaders = new Headers(headers);
+  if (!requestHeaders.has('CF-Connecting-IP')) requestHeaders.set('CF-Connecting-IP', runIp);
   if (token) requestHeaders.set('Authorization', `Bearer ${token}`);
   if (body && !(body instanceof FormData)) requestHeaders.set('Content-Type', 'application/json');
   const response = await fetch(base + path, { method, headers: requestHeaders, body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined });
