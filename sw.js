@@ -1,4 +1,4 @@
-const APP_CACHE = 'yeogiro-app-v16';
+const APP_CACHE = 'yeogiro-app-v17';
 const MAP_CACHE = 'yeogiro-map-v2';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
