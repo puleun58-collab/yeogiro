@@ -29,4 +29,5 @@ ui.conflict({ local: { items: [{ id: 'a', name: '내 일정' }], flights: [], lo
 assert.match(sheet, /일정 1개/);
 assert.match(sheet, /다른 기기 변경사항 반영/);
 assert.match(sheet, /이 기기 변경사항으로 저장/);
-console.log('8 sync UI checks passed');
+assert.doesNotMatch(sheet, /서버 최신 내용 사용|내 변경사항 다시 적용/);
+console.log('9 sync UI checks passed');
