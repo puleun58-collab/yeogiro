@@ -27,6 +27,6 @@ assert.match(sheet, /인터넷 연결 후 자동으로 동기화/);
 
 ui.conflict({ local: { items: [{ id: 'a', name: '내 일정' }], flights: [], lodgings: [] }, remote: { items: [{ id: 'a', name: '서버 일정' }], flights: [], lodgings: [] } });
 assert.match(sheet, /일정 1개/);
-assert.match(sheet, /서버 최신 내용 사용/);
-assert.match(sheet, /내 변경사항 다시 적용/);
+assert.match(sheet, /다른 기기 변경사항 반영/);
+assert.match(sheet, /이 기기 변경사항으로 저장/);
 console.log('8 sync UI checks passed');
