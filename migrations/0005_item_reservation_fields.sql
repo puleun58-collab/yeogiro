@@ -1,0 +1,2 @@
+ALTER TABLE items ADD COLUMN reservation_number TEXT NOT NULL DEFAULT '';
+ALTER TABLE items ADD COLUMN provider TEXT NOT NULL DEFAULT '';

@@ -82,6 +82,13 @@ try {
   assert.equal(conflict.response.status, 409, 'revision 충돌 시 409');
   assert.equal(conflict.data.trip.revision, 2, '충돌 응답에 최신 trip 포함');
 
+  const impossibleDate = trip(id); impossibleDate.items[0].day = '2026-02-30';
+  assert.equal((await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: impossibleDate, baseRevision: 2 } })).response.status, 400, '존재하지 않는 날짜 차단');
+  const reversedFlight = trip(id); reversedFlight.flights.push({ id: `${id}_flight`, airline: '', flightNumber: 'TW125', departDate: '2026-08-23', arriveDate: '2026-08-22', from: 'ICN', fromTerminal: '', fromCity: '인천', depart: '23:30', to: 'DAD', toTerminal: '', toCity: '다낭', arrive: '02:10', reservationNumber: '', seat: '', baggage: '', userDocs: [] });
+  assert.equal((await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: reversedFlight, baseRevision: 2 } })).response.status, 400, '출발일보다 빠른 도착일 차단');
+  const missingTarget = trip(id); missingTarget.files.push({ id: `${id}_file`, entityType: 'flight', entityId: 'deleted-flight', name: 'missing.pdf', mime: 'application/pdf', size: 10, deviceId: 'test-device' });
+  assert.equal((await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: missingTarget, baseRevision: 2 } })).response.status, 400, '삭제된 문서 연결 대상 차단');
+
   const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false } });
   await api(`/api/trips/${id}/invites/${revokedInvite.data.id}`, { method: 'DELETE', token: owner });
   const revoked = await api('/api/invites/redeem', { method: 'POST', body: { token: revokedInvite.data.token } });
@@ -104,7 +111,7 @@ try {
   assert.equal(limited.response.status, 429, 'rate limit 정상 동작');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: owner });
-  console.log('15 API integration checks passed');
+  console.log('18 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
