@@ -1,9 +1,11 @@
-const APP_CACHE = 'yeogiro-app-v15';
-const MAP_CACHE = 'yeogiro-map-v1';
+const APP_CACHE = 'yeogiro-app-v16';
+const MAP_CACHE = 'yeogiro-map-v2';
+const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
   '/',
   '/index.html',
   '/sync.js',
+  '/sync-ui.js',
   '/offline.html',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v7.png',
@@ -49,7 +51,13 @@ async function cacheFirst(request, cacheName) {
   const cached = await cache.match(request);
   if (cached) return cached;
   const response = await fetch(request);
-  if (response.ok || response.type === 'opaque') cache.put(request, response.clone());
+  if (response.ok || response.type === 'opaque') {
+    await cache.put(request, response.clone());
+    if (cacheName === MAP_CACHE) {
+      const keys = await cache.keys();
+      await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_MAP_ENTRIES)).map(key => cache.delete(key)));
+    }
+  }
   return response;
 }
 

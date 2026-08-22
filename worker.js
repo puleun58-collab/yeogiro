@@ -87,13 +87,13 @@ async function loadTrip(env, tripId, includeHero = false) {
     files:files.results.map(fileOut),heroSharedData:hero?.data?blobDataUrl(hero.data,hero.mime):'' };
 }
 
-async function replaceChildren(env, trip, memberId) {
+function childStatements(env, trip, memberId) {
   const stamp=now(), q=[env.DB.prepare('DELETE FROM items WHERE trip_id=?').bind(trip.id),env.DB.prepare('DELETE FROM flights WHERE trip_id=?').bind(trip.id),env.DB.prepare('DELETE FROM lodgings WHERE trip_id=?').bind(trip.id),env.DB.prepare('DELETE FROM files WHERE trip_id=?').bind(trip.id)];
   for(const x of trip.items)q.push(env.DB.prepare(`INSERT INTO items (id,trip_id,day,time,category,name,place,map_url,memo,move,alarm,lat,lng,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(x.id,trip.id,x.day,x.time,x.cat,x.name,x.place,x.mapUrl,x.memo,x.move,x.alarm,x.lat,x.lng,stamp,stamp));
   for(const x of trip.flights)q.push(env.DB.prepare(`INSERT INTO flights (id,trip_id,airline,flight_number,depart_date,arrive_date,from_airport,from_terminal,from_city,depart_time,to_airport,to_terminal,to_city,arrive_time,reservation_number,seat,baggage,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(x.id,trip.id,x.airline,x.flightNumber,x.departDate,x.arriveDate,x.from,x.fromTerminal,x.fromCity,x.depart,x.to,x.toTerminal,x.toCity,x.arrive,x.reservationNumber,x.seat,x.baggage,stamp,stamp));
   for(const x of trip.lodgings)q.push(env.DB.prepare(`INSERT INTO lodgings (id,trip_id,item_id,name,check_in_date,check_in_time,check_out_date,check_out_time,address,reservation_number,guests,room,breakfast,memo,map_url,lat,lng,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(x.id,trip.id,x.itemId||null,x.name,x.checkInDate,x.checkInTime,x.checkOutDate,x.checkOutTime,x.address,x.reservationNumber,x.guests,x.room,x.breakfast,x.memo,x.mapUrl,x.lat,x.lng,stamp,stamp));
   for(const x of trip.files)q.push(env.DB.prepare(`INSERT INTO files (id,trip_id,entity_type,entity_id,storage,device_id,name,mime,size,created_by_member_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).bind(x.id,trip.id,x.entityType,x.entityId,'indexeddb',x.deviceId,x.name,x.mime,x.size,memberId,stamp));
-  await env.DB.batch(q);
+  return q;
 }
 
 async function createTrip(request,env){
@@ -101,8 +101,9 @@ async function createTrip(request,env){
   let trip;try{trip=validateTrip(body.trip)}catch(e){return json({error:e.message},400)}
   if(await env.DB.prepare('SELECT id FROM trips WHERE id=?').bind(trip.id).first())return json({error:'이미 존재하는 여행입니다.'},409);
   const token=randomToken(),memberId=id('mem'),stamp=now();
-  await env.DB.batch([env.DB.prepare(`INSERT INTO trips (id,title,start_date,end_date,note,cities_json,hero_file_id,revision,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(trip.id,trip.title,trip.start,trip.end,trip.note,JSON.stringify(trip.cities),trip.heroFileId||null,1,stamp,stamp),env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?)`).bind(memberId,trip.id,clean(body.displayName,80)||'소유자','owner',await hash(token),stamp,stamp)]);
-  await replaceChildren(env,trip,memberId);return json({trip:await loadTrip(env,trip.id),accessToken:token,role:'owner'},201);
+  const statements=[env.DB.prepare(`INSERT INTO trips (id,title,start_date,end_date,note,cities_json,hero_file_id,revision,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(trip.id,trip.title,trip.start,trip.end,trip.note,JSON.stringify(trip.cities),trip.heroFileId||null,1,stamp,stamp),env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?)`).bind(memberId,trip.id,clean(body.displayName,80)||'소유자','owner',await hash(token),stamp,stamp),...childStatements(env,trip,memberId)];
+  try{await env.DB.batch(statements)}catch(error){console.error('create trip transaction failed',error);return json({error:'여행을 저장하지 못했습니다. 기존 데이터는 변경되지 않았습니다.'},500)}
+  return json({trip:await loadTrip(env,trip.id),accessToken:token,role:'owner'},201);
 }
 async function updateTrip(request,env,tripId,member){
   if(!canEdit(member))return json({error:'보기 전용 여행은 수정할 수 없습니다.'},403);
@@ -110,21 +111,35 @@ async function updateTrip(request,env,tripId,member){
   let trip;try{trip=validateTrip({...body.trip,id:tripId})}catch(e){return json({error:e.message},400)}
   const current=await env.DB.prepare('SELECT revision FROM trips WHERE id=? AND deleted_at IS NULL').bind(tripId).first();if(!current)return json({error:'여행을 찾을 수 없습니다.'},404);
   const base=Number(body.baseRevision||0);if(base!==current.revision)return json({error:'다른 기기에서 여행이 변경되었습니다.',conflict:true,trip:await loadTrip(env,tripId)},409);
-  const result=await env.DB.prepare(`UPDATE trips SET title=?,start_date=?,end_date=?,note=?,cities_json=?,hero_file_id=?,revision=revision+1,updated_at=? WHERE id=? AND revision=?`).bind(trip.title,trip.start,trip.end,trip.note,JSON.stringify(trip.cities),trip.heroFileId||null,now(),tripId,base).run();
-  if(!result.meta.changes)return json({error:'동기화 충돌이 발생했습니다.',conflict:true,trip:await loadTrip(env,tripId)},409);
-  await replaceChildren(env,trip,member.id);return json({trip:await loadTrip(env,tripId),role:member.role});
+  const assertion=id('assert'),stamp=now(),statements=[
+    env.DB.prepare(`UPDATE trips SET title=?,start_date=?,end_date=?,note=?,cities_json=?,hero_file_id=?,revision=revision+1,updated_at=? WHERE id=? AND revision=?`).bind(trip.title,trip.start,trip.end,trip.note,JSON.stringify(trip.cities),trip.heroFileId||null,stamp,tripId,base),
+    env.DB.prepare('INSERT INTO sync_assertions (id,value) VALUES (?,changes())').bind(assertion),
+    ...childStatements(env,trip,member.id),
+    env.DB.prepare('DELETE FROM sync_assertions WHERE id=?').bind(assertion)
+  ];
+  try{await env.DB.batch(statements)}catch(error){
+    const latest=await loadTrip(env,tripId);if(latest&&latest.revision!==base)return json({error:'다른 기기에서 여행이 변경되었습니다.',conflict:true,trip:latest},409);
+    console.error('update trip transaction failed',error);return json({error:'여행을 저장하지 못했습니다. 기존 서버 데이터는 유지되었습니다.',retryable:true},503)
+  }
+  return json({trip:await loadTrip(env,tripId),role:member.role});
 }
 async function createInvite(request,env,tripId,member){
   if(member.role!=='owner')return json({error:'소유자만 초대 링크를 만들 수 있습니다.'},403);let body={};try{body=await request.json()}catch{}
-  const role=body.role==='viewer'?'viewer':'editor',token=randomToken(36),stamp=now(),days=Math.min(30,Math.max(1,Number(body.expiresInDays)||7)),expiresAt=new Date(Date.now()+days*86400000).toISOString(),inviteId=id('inv');
-  await env.DB.prepare(`INSERT INTO invites (id,trip_id,token_hash,role,created_by_member_id,expires_at,created_at) VALUES (?,?,?,?,?,?,?)`).bind(inviteId,tripId,await hash(token),role,member.id,expiresAt,stamp).run();return json({id:inviteId,token,role,expiresAt},201);
+  const role=body.role==='viewer'?'viewer':'editor',singleUse=body.singleUse!==false,token=randomToken(36),stamp=now(),days=Math.min(30,Math.max(1,Number(body.expiresInDays)||7)),seconds=Number.isFinite(Number(body.expiresInSeconds))?Math.min(30*86400,Math.max(1,Number(body.expiresInSeconds))):days*86400,expiresAt=new Date(Date.now()+seconds*1000).toISOString(),inviteId=id('inv');
+  await env.DB.prepare(`INSERT INTO invites (id,trip_id,token_hash,role,created_by_member_id,expires_at,created_at,max_uses,use_count) VALUES (?,?,?,?,?,?,?,?,0)`).bind(inviteId,tripId,await hash(token),role,member.id,expiresAt,stamp,singleUse?1:null).run();return json({id:inviteId,token,role,expiresAt,singleUse},201);
 }
 async function redeemInvite(request,env){
-  let body;try{body=await request.json()}catch{return json({error:'JSON 요청이 필요합니다.'},400)}const token=clean(body.token,200),invite=token?await env.DB.prepare(`SELECT * FROM invites WHERE token_hash=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?)`).bind(await hash(token),now()).first():null;
-  if(!invite)return json({error:'초대 링크가 만료되었거나 비활성화되었습니다.'},404);const accessToken=randomToken(),memberId=id('mem'),stamp=now();
-  await env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?)`).bind(memberId,invite.trip_id,clean(body.displayName,80)||'동행자',invite.role,await hash(accessToken),stamp,stamp).run();return json({trip:await loadTrip(env,invite.trip_id,true),tripId:invite.trip_id,accessToken,role:invite.role},201);
+  let body;try{body=await request.json()}catch{return json({error:'JSON 요청이 필요합니다.'},400)}const token=clean(body.token,200),stamp=now(),invite=token?await env.DB.prepare(`SELECT * FROM invites WHERE token_hash=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) AND (max_uses IS NULL OR use_count<max_uses)`).bind(await hash(token),stamp).first():null;
+  if(!invite)return json({error:'초대 링크가 만료되었거나 비활성화되었습니다.'},404);const accessToken=randomToken(),memberId=id('mem');
+  const assertion=id('assert');try{await env.DB.batch([
+    env.DB.prepare(`UPDATE invites SET use_count=use_count+1,consumed_at=CASE WHEN max_uses=1 THEN ? ELSE consumed_at END,revoked_at=CASE WHEN max_uses=1 THEN ? ELSE revoked_at END WHERE id=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) AND (max_uses IS NULL OR use_count<max_uses)`).bind(stamp,stamp,invite.id,stamp),
+    env.DB.prepare('INSERT INTO sync_assertions (id,value) VALUES (?,changes())').bind(assertion),
+    env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?)`).bind(memberId,invite.trip_id,clean(body.displayName,80)||'동행자',invite.role,await hash(accessToken),stamp,stamp),
+    env.DB.prepare('DELETE FROM sync_assertions WHERE id=?').bind(assertion)
+  ])}catch{return json({error:'초대 링크가 이미 사용되었거나 비활성화되었습니다.'},409)}
+  return json({trip:await loadTrip(env,invite.trip_id,true),tripId:invite.trip_id,accessToken,role:invite.role},201);
 }
-async function accessList(env,tripId){const [m,i]=await Promise.all([env.DB.prepare(`SELECT id,display_name,role,created_at,last_seen_at FROM members WHERE trip_id=? AND revoked_at IS NULL ORDER BY created_at`).bind(tripId).all(),env.DB.prepare(`SELECT id,role,expires_at,created_at FROM invites WHERE trip_id=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) ORDER BY created_at DESC`).bind(tripId,now()).all()]);return{members:m.results,invites:i.results}}
+async function accessList(env,tripId){const [m,i]=await Promise.all([env.DB.prepare(`SELECT id,display_name,role,created_at,last_seen_at FROM members WHERE trip_id=? AND revoked_at IS NULL ORDER BY created_at`).bind(tripId).all(),env.DB.prepare(`SELECT id,role,expires_at,created_at,max_uses,use_count FROM invites WHERE trip_id=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) AND (max_uses IS NULL OR use_count<max_uses) ORDER BY created_at DESC`).bind(tripId,now()).all()]);return{members:m.results,invites:i.results}}
 
 async function tripHero(request,env,tripId,member){
   if(request.method==='GET'){
