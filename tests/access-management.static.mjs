@@ -26,6 +26,12 @@ const settingsSource = source.match(/function settings\(\)[\s\S]*?function searc
 assert.doesNotMatch(settingsSource, /editCurrent|changeBg/, '설정에서 홈과 중복되는 여행 편집·배경 사진 메뉴 제거');
 assert.match(settingsSource, /여행 관리[\s\S]*dataSafety[\s\S]*myShare[\s\S]*tripShare[\s\S]*collaborationLog[\s\S]*앱 기능[\s\S]*notify[\s\S]*allIcs[\s\S]*백업 및 복원[\s\S]*exportJson[\s\S]*importJson[\s\S]*앱 안내[\s\S]*초기화/, '설정 항목을 사용 목적과 우선순위에 따라 그룹화');
 assert.match(settingsSource, /installed\?'':'<button id="installFromSettings"/, '설치된 앱에서는 중복 설치 메뉴를 숨김');
+assert.match(source, /async function backupExportPreviewSheet/, 'JSON 백업 전에 포함 내용을 확인');
+assert.match(source, /포함 원본[\s\S]*누락 원본[\s\S]*예상 용량/, '백업 전 원본 포함 수와 예상 용량 표시');
+assert.match(source, /async function resetProtectionSheet/, '전체 초기화 전에 동기화·원본·최근 백업 상태 확인');
+assert.doesNotMatch(settingsSource, /전체 초기화 \(두 번 탭\)/, '초기화 메뉴가 이전의 이중 탭 안내를 노출하지 않음');
+assert.match(source, /if\(b\.dataset\.confirmReset!==undefined\)\{[^}]*state=sample\(\)[^}]*YeogiroStore\.persist/, '보호 화면에서 확인한 경우에만 전체 초기화');
+assert.match(source, /dataset\.afterTrip==='backup'[\s\S]*backupExportPreviewSheet/, '여행 종료 화면의 백업도 사전 확인을 사용');
 assert.match(source, /function previewFlightGroup/, '여러 항공편 분석 결과를 구간별로 확인');
 assert.match(source, /function confirmFlightGroupImport/, '여러 항공편을 별도 데이터로 저장');
 assert.match(source, /#analyzeDoc,#confirmImport,#confirmFlightGroup[^}]*width:100%[^}]*min-height:48px[^}]*border-radius:var\(--radius-control\)/, '여러 항공편 저장 버튼을 자동입력 공통 규격에 포함');
@@ -40,4 +46,4 @@ assert.match(source, /class="flight-airline"[\s\S]*class="flight-number"/, '항�
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('34 access management and extraction UI checks passed');
+console.log('40 access management and extraction UI checks passed');
