@@ -8,4 +8,6 @@ assert.match(source, /function previewBackup/, 'restore preview is available bef
 assert.match(source, /mode==='new'/, 'restore supports importing as a new trip');
 assert.match(source, /kept=\(current\.trips\|\|\[\]\)\.filter/, 'restore preserves unrelated current trips');
 assert.match(source, /async function auditFiles/, 'file metadata and IndexedDB state can be audited');
-console.log('6 backup and restore checks passed');
+assert.match(source, /async function dataSafety[\s\S]*localOnly:[^,]+[\s\S]*missing:/, 'data safety summary distinguishes local-only and missing originals');
+assert.match(source, /await put\('meta',exportedAt,'last-backup'\)/, 'successful backup creation records its timestamp');
+console.log('8 backup and restore checks passed');

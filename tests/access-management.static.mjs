@@ -27,8 +27,13 @@ assert.doesNotMatch(settingsSource, /editCurrent|changeBg/, '설정에서 홈과
 assert.match(source, /function previewFlightGroup/, '여러 항공편 분석 결과를 구간별로 확인');
 assert.match(source, /function confirmFlightGroupImport/, '여러 항공편을 별도 데이터로 저장');
 assert.match(source, /#analyzeDoc,#confirmImport,#confirmFlightGroup[^}]*width:100%[^}]*min-height:48px[^}]*border-radius:var\(--radius-control\)/, '여러 항공편 저장 버튼을 자동입력 공통 규격에 포함');
+assert.match(source, /id="dataSafety">🗄️ 데이터 보관 상태/, '설정에서 데이터 보관 상태에 접근');
+assert.match(source, /async function dataSafetySheet/, '동기화·원본·복구·백업 상태 화면 제공');
+assert.match(source, /data-safety-summary[\s\S]*safety-actions/, '데이터 보관 상태 모바일 UI 규격 제공');
+assert.match(source, /data-safety-update>업데이트 확인/, '재설치 없는 앱 업데이트 확인 제공');
+assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.match(source, /class="flight-airline"[\s\S]*class="flight-number"/, '항공사와 편명을 카드에서 두 줄로 구분');
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('25 access management and extraction UI checks passed');
+console.log('30 access management and extraction UI checks passed');
