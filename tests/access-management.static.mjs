@@ -32,8 +32,10 @@ assert.match(source, /async function dataSafetySheet/, '동기화·원본·복�
 assert.match(source, /data-safety-summary[\s\S]*safety-actions/, '데이터 보관 상태 모바일 UI 규격 제공');
 assert.match(source, /data-safety-update>업데이트 확인/, '재설치 없는 앱 업데이트 확인 제공');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
+assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
+assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
 assert.match(source, /class="flight-airline"[\s\S]*class="flight-number"/, '항공사와 편명을 카드에서 두 줄로 구분');
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('30 access management and extraction UI checks passed');
+console.log('32 access management and extraction UI checks passed');
