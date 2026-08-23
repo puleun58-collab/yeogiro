@@ -16,4 +16,8 @@ assert.match(source, /function embeddedFileSummary/, 'legacy backups derive embe
 assert.match(source, /doc\.data[\s\S]*saveBlob\(dataUrlBlob\(doc\.data\)/, 'embedded reservation originals restore into IndexedDB');
 assert.match(source, /legacyHero[\s\S]*saveBlob\(dataUrlBlob\(legacyHero\)/, 'embedded representative photo restores into IndexedDB');
 assert.match(source, /previewBackup[\s\S]*fileSummary=value\?\.fileSummary\|\|embeddedFileSummary/, 'restore preview preserves or derives original-file summary');
-console.log('14 backup and restore checks passed');
+assert.match(source, /async function auditFiles[\s\S]*trip\.heroFileId[\s\S]*reason:mismatch\?'metadata':local\?'local':'missing'/, 'file audit includes hero images and classifies actionable states');
+assert.match(source, /async function repairFileMetadata/, 'local originals can safely repair stale size and mime metadata');
+assert.match(source, /navigator\.storage\?\.estimate/, 'data safety reports browser storage usage when supported');
+assert.match(source, /files:\{[\s\S]*bytes:[\s\S]*hero:[\s\S]*issues:/, 'data safety exposes file bytes, hero count, and issue details');
+console.log('18 backup and restore checks passed');
