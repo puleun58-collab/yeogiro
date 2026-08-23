@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const source = readFileSync('index.html', 'utf8');
+const worker = readFileSync('worker.js', 'utf8');
 
 assert.equal((source.match(/function shareSettings/g) || []).length, 1, '공유 관리 화면 구현은 하나만 존재');
 assert.equal((source.match(/function recoverSheet/g) || []).length, 1, '여행 복구 화면 구현은 하나만 존재');
@@ -21,5 +22,12 @@ assert.match(source, /function collaborationSheet/, '변경 내역과 휴지통 
 assert.match(source, /data-restore-trash/, '삭제 항목 복원 동작 제공');
 assert.match(source, /class="import-result-title"/, '분석 결과 제목에 전용 간격 클래스 적용');
 assert.match(source, /\.import-result>\.review-callout\{margin:0 0 16px\}/, '저장 전 확인과 첫 입력 필드 사이 간격 제공');
+const settingsSource = source.match(/function settings\(\)[\s\S]*?function searchResults/)?.[0] || '';
+assert.doesNotMatch(settingsSource, /editCurrent|changeBg/, '설정에서 홈과 중복되는 여행 편집·배경 사진 메뉴 제거');
+assert.match(source, /function previewFlightGroup/, '여러 항공편 분석 결과를 구간별로 확인');
+assert.match(source, /function confirmFlightGroupImport/, '여러 항공편을 별도 데이터로 저장');
+assert.match(source, /class="flight-airline"[\s\S]*class="flight-number"/, '항공사와 편명을 카드에서 두 줄로 구분');
+assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
+assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('18 access management UI checks passed');
+console.log('24 access management and extraction UI checks passed');

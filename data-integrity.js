@@ -12,6 +12,10 @@
     return String(value || '').normalize('NFKC').toLowerCase().replace(/\s+/g, '').replace(/[^\p{L}\p{N}]/gu, '');
   }
   function normalizeFlightNumber(value) { return normalize(value).toUpperCase(); }
+  function flightNumberParts(value) {
+    const compact = normalizeFlightNumber(value), parts = compact.match(/(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])\d{2,4}/g) || [];
+    return parts.join('') === compact ? parts : [];
+  }
   function normalizeAirport(value) { return String(value || '').trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3); }
   function isValidDate(value) {
     if (!DATE_RE.test(String(value || ''))) return false;
@@ -35,6 +39,10 @@
     if (kind === 'flight') return { kind, entity: { ...f, reservationNumber: f.reservationNumber || x.reservationNumber || '' } };
     if (kind === 'lodging') return { kind, entity: { name: l.name || x.title || '', checkInDate: l.checkInDate || x.date || '', checkInTime: l.checkInTime || x.time || '', checkOutDate: l.checkOutDate || x.endDate || '', checkOutTime: l.checkOutTime || '', address: l.address || x.address || x.place || '', reservationNumber: l.reservationNumber || x.reservationNumber || '', room: l.room || '', guests: l.guests || '', breakfast: l.breakfast || '', memo: l.memo || x.memo || '' } };
     return { kind: 'reservation', entity: { name: r.name || x.title || '', day: r.date || x.date || '', time: r.time || x.time || '', place: r.place || x.place || '', address: r.address || x.address || '', reservationNumber: r.reservationNumber || x.reservationNumber || '', provider: r.provider || '', memo: r.memo || x.memo || '' } };
+  }
+  function flightEntitiesFromExtraction(x) {
+    const list = Array.isArray(x?.flights) && x.flights.length ? x.flights : x?.flight ? [x.flight] : [];
+    return list.slice(0, 8).map(flight => ({ ...flight, reservationNumber: flight.reservationNumber || x?.reservationNumber || '' }));
   }
   function findCandidates(trip, kind, entity) {
     const matches = [];
@@ -65,9 +73,11 @@
     const errors = [], warnings = [];
     if (kind === 'flight') {
       if (!entity.flightNumber) warnings.push('편명을 확인해 주세요.');
+      if (flightNumberParts(entity.flightNumber).length > 1) errors.push('편명이 여러 개로 합쳐져 있습니다. 항공편을 나눠 입력해 주세요.');
       if (!isValidDate(entity.departDate)) errors.push('출발 날짜를 확인해 주세요.');
       if (!isValidDate(entity.arriveDate)) errors.push('도착 날짜를 확인해 주세요.');
       if (isValidDate(entity.departDate) && isValidDate(entity.arriveDate) && entity.arriveDate < entity.departDate) errors.push('도착 날짜는 출발 날짜보다 빠를 수 없습니다.');
+      if (isValidDate(entity.departDate) && isValidDate(entity.arriveDate) && (new Date(`${entity.arriveDate}T00:00:00Z`) - new Date(`${entity.departDate}T00:00:00Z`)) / 86400000 > 2) warnings.push('출발일과 도착일 차이가 큽니다. 항공편 날짜를 확인해 주세요.');
       if (!isValidTime(entity.depart)) errors.push('출발 시간을 확인해 주세요.');
       if (!isValidTime(entity.arrive)) errors.push('도착 시간을 확인해 주세요.');
       if (!normalizeAirport(entity.from) || !normalizeAirport(entity.to)) warnings.push('출발·도착 공항코드를 확인해 주세요.');
@@ -98,5 +108,5 @@
     }
     return { trips: trips.length, items, flights, lodgings, documents: docs.size, files: files.size };
   }
-  return { normalize, normalizeFlightNumber, normalizeAirport, isValidDate, isValidTime, similarity, entityFromExtraction, findCandidates, validateEntity, diffFields, backupSummary };
+  return { normalize, normalizeFlightNumber, flightNumberParts, normalizeAirport, isValidDate, isValidTime, similarity, entityFromExtraction, flightEntitiesFromExtraction, findCandidates, validateEntity, diffFields, backupSummary };
 });
