@@ -20,6 +20,9 @@ assert.match(source, /id="displayNameForm"[\s\S]*maxlength="40"/, '표시명 변
 assert.match(source, /function deviceLinkSheet[\s\S]*새 기기 연결 코드/, '공유 구성원 새 기기 연결 화면 제공');
 assert.match(source, /trip-access-stack[\s\S]*관리자 권한 복구[\s\S]*data-open-device-link>새 기기에 연결/, '여행 목록의 연결 동작 문구와 버튼 간격 통일');
 assert.match(source, /id="recoveryForm"[\s\S]*class="save management-primary-action">이 기기에 여행 연결[\s\S]*id="deviceLinkForm"[\s\S]*class="save management-primary-action">이 기기에 연결/, '두 연결 화면의 기본 버튼을 취소 버튼 규격과 통일');
+assert.match(source, /id="timeOptionsToggle"[\s\S]*aria-expanded="\$\{expanded\}"[\s\S]*종료시간·준비시간 설정/, '종료시간과 준비시간을 선택형 접기 영역으로 제공');
+assert.match(source, /prepOptions=\[\[0,'없음'\],\[10,'10분'\],\[20,'20분'\],\[30,'30분'\],\[60,'1시간'\],\['custom','직접 입력'\]\]/, '준비시간 빠른 선택값과 직접 입력 제공');
+assert.match(source, /name="preparationMinutes"[\s\S]*id="preparationHours"[\s\S]*id="preparationMinutePart"/, '시간·분 선택 결과를 기존 분 단위 필드로 유지');
 assert.match(source, /function askConfirm/, '관리 작업은 앱 내부 확인 화면 사용');
 assert.doesNotMatch(source, /dataset\.transferOwner\)\{if\(!confirm|dataset\.revokeMember\)\{if\(!confirm|dataset\.revokeSession\)\{[^}]*confirm/, '공유·기기 위험 작업에서 브라우저 확인창 제거');
 assert.match(source, /id="collaborationLog"[^>]*>🕘 변경 내역 및 휴지통/, '설정에서 변경 내역과 휴지통 접근');
@@ -55,7 +58,7 @@ assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callo
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=48',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=49',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
@@ -63,4 +66,4 @@ assert.match(source, /class="flight-airline"[\s\S]*class="flight-number"/, '항�
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('57 access management and extraction UI checks passed');
+console.log('60 access management and extraction UI checks passed');
