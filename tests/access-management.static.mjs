@@ -19,5 +19,7 @@ assert.doesNotMatch(source, /dataset\.transferOwner\)\{if\(!confirm|dataset\.rev
 assert.match(source, /id="collaborationLog"[^>]*>🕘 변경 내역 및 휴지통/, '설정에서 변경 내역과 휴지통 접근');
 assert.match(source, /function collaborationSheet/, '변경 내역과 휴지통 모바일 관리 화면 제공');
 assert.match(source, /data-restore-trash/, '삭제 항목 복원 동작 제공');
+assert.match(source, /class="import-result-title"/, '분석 결과 제목에 전용 간격 클래스 적용');
+assert.match(source, /\.import-result>\.review-callout\{margin:0 0 16px\}/, '저장 전 확인과 첫 입력 필드 사이 간격 제공');
 
-console.log('16 access management UI checks passed');
+console.log('18 access management UI checks passed');
