@@ -52,11 +52,12 @@ try {
   await waitForServer();
   const id = `test_${Date.now()}`;
 
-  const created = await api('/api/trips', { method: 'POST', body: { trip: trip(id), displayName: '테스트 소유자' } });
+  const created = await api('/api/trips', { method: 'POST', body: { trip: trip(id), displayName: '테스트 소유자', deviceId: 'owner-device', deviceName: 'Windows', platform: 'Windows', clientType: 'browser' } });
   assert.equal(created.response.status, 201, '여행 생성 성공');
   assert.equal(created.data.role, 'owner', 'owner 권한 정상');
   assert.deepEqual({ endTime: created.data.trip.items[0].endTime, preparationMinutes: created.data.trip.items[0].preparationMinutes }, { endTime: '11:15', preparationMinutes: 20 }, '일정 종료·준비시간 저장 및 조회');
   const owner = created.data.accessToken;
+  assert.ok(created.data.sessionId, '여행 생성 시 기기 세션 발급');
 
   const invalid = await api(`/api/trips/${id}`, { token: 'not-a-valid-token' });
   assert.equal(invalid.response.status, 401, '잘못된 access token 거부');
@@ -72,6 +73,50 @@ try {
   const viewer = viewerJoin.data.accessToken;
   const reused = await api('/api/invites/redeem', { method: 'POST', body: { token: viewerInvite.data.token } });
   assert.ok([404, 409].includes(reused.response.status), '1회용 초대 재사용 거부');
+
+  const accessBefore = await api(`/api/trips/${id}/access`, { token: owner });
+  const ownerMember = accessBefore.data.members.find(member => member.role === 'owner');
+  const editorMember = accessBefore.data.members.find(member => member.role === 'editor');
+  const viewerMember = accessBefore.data.members.find(member => member.role === 'viewer');
+  assert.ok(accessBefore.data.sessions.some(session => session.id === created.data.sessionId && session.current), '현재 기기 세션 표시');
+
+  const issued = await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: owner, body: {} });
+  assert.equal(issued.response.status, 201, 'owner 복구키 생성');
+  assert.match(issued.data.recoveryKey, /^(?:[A-Z2-9]{4}-){4}[A-Z2-9]{4}$/, '복구키 보관 형식');
+  assert.ok(!issued.data.recoveryUrl.includes(issued.data.recoveryKey), '복구 URL에 복구키 미포함');
+  const firstRecoveryKey = issued.data.recoveryKey;
+
+  const badRecovery = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: 'AAAA-BBBB-CCCC-DDDD-EEEE', deviceId: 'bad-device' } });
+  assert.equal(badRecovery.response.status, 401, '잘못된 복구키 거부');
+  const recovered = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: firstRecoveryKey, deviceId: 'new-phone', deviceName: '새 휴대폰', platform: 'iOS', clientType: 'pwa' } });
+  assert.equal(recovered.response.status, 201, '올바른 복구키로 owner 세션 생성');
+  assert.equal(recovered.data.role, 'owner');
+  const recoveredToken = recovered.data.accessToken;
+
+  const rotated = await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: owner, body: {} });
+  assert.equal(rotated.response.status, 201, '복구키 재발급');
+  assert.notEqual(rotated.data.recoveryKey, firstRecoveryKey, '새 복구키 원문 변경');
+  const oldRecovery = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: firstRecoveryKey, deviceId: 'old-key-device' } });
+  assert.equal(oldRecovery.response.status, 401, '재발급 후 이전 복구키 사용 불가');
+  const recoveredAgain = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: rotated.data.recoveryKey, deviceId: 'replacement-phone', deviceName: '교체 휴대폰', platform: 'Android', clientType: 'pwa' } });
+  assert.equal(recoveredAgain.response.status, 201, '새 복구키 사용 가능');
+
+  const revokedSession = await api(`/api/trips/${id}/sessions/${recovered.data.sessionId}`, { method: 'DELETE', token: owner });
+  assert.equal(revokedSession.response.status, 200, '특정 기기 세션 해제');
+  assert.equal((await api(`/api/trips/${id}`, { token: recoveredToken })).response.status, 401, 'revoked session은 즉시 401');
+  assert.equal((await api(`/api/trips/${id}/access`, { token: editor })).response.status, 403, 'editor는 기기·멤버 관리 불가');
+  assert.equal((await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: editor, body: {} })).response.status, 403, 'editor는 복구키 재발급 불가');
+  assert.equal((await api(`/api/trips/${id}/sessions/${created.data.sessionId}`, { method: 'DELETE', token: editor })).response.status, 403, 'editor는 세션 해제 불가');
+
+  assert.equal((await api(`/api/trips/${id}/members/${viewerMember.id}`, { method: 'PATCH', token: owner, body: { role: 'editor' } })).data.role, 'editor', 'viewer를 editor로 변경');
+  assert.equal((await api(`/api/trips/${id}/members/${viewerMember.id}`, { method: 'PATCH', token: owner, body: { role: 'viewer' } })).data.role, 'viewer', 'editor를 viewer로 변경');
+
+  const disposableInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'editor', singleUse: true } });
+  const disposableJoin = await api('/api/invites/redeem', { method: 'POST', body: { token: disposableInvite.data.token, displayName: '제거할 편집자', deviceId: 'disposable' } });
+  const disposableAccess = await api(`/api/trips/${id}/access`, { token: owner });
+  const disposableMember = disposableAccess.data.members.find(member => member.display_name === '제거할 편집자');
+  assert.equal((await api(`/api/trips/${id}/members/${disposableMember.id}`, { method: 'DELETE', token: owner })).response.status, 204, 'owner가 editor 제거 가능');
+  assert.equal((await api(`/api/trips/${id}`, { token: disposableJoin.data.accessToken })).response.status, 401, '멤버 제거 시 해당 세션 해제');
 
   const viewerEdit = await api(`/api/trips/${id}`, { method: 'PUT', token: viewer, body: { trip: trip(id), baseRevision: 1 } });
   assert.equal(viewerEdit.response.status, 403, 'viewer 수정 시 403');
@@ -101,6 +146,13 @@ try {
   const expired = await api('/api/invites/redeem', { method: 'POST', body: { token: expiredInvite.data.token } });
   assert.equal(expired.response.status, 404, '만료된 invite 거부');
 
+  const transferred = await api(`/api/trips/${id}/members/${editorMember.id}/transfer`, { method: 'POST', token: owner, body: { previousOwner: 'editor' } });
+  assert.equal(transferred.response.status, 200, '소유권 이전 성공');
+  assert.equal(transferred.data.previousOwnerRole, 'editor', '이전 owner를 editor로 변경');
+  assert.equal((await api(`/api/trips/${id}`, { token: editor })).data.role, 'owner', '대상 editor가 owner로 승격');
+  assert.equal((await api(`/api/trips/${id}`, { token: owner })).data.role, 'editor', '이전 owner 세션 권한도 editor 반영');
+  assert.equal((await api(`/api/trips/${id}/members/${editorMember.id}`, { method: 'DELETE', token: editor })).response.status, 409, '마지막 owner 삭제 차단');
+
   const oversized = new FormData(); oversized.append('file', new Blob([new Uint8Array(8 * 1024 * 1024 + 1)], { type: 'application/pdf' }), 'large.pdf');
   assert.equal((await api('/api/analyze-document', { method: 'POST', body: oversized })).response.status, 413, 'AI 분석 8MB 초과 차단');
   const badMime = new FormData(); badMime.append('file', new Blob(['text'], { type: 'text/plain' }), 'bad.txt');
@@ -112,8 +164,12 @@ try {
   for (let i = 0; i < 31; i += 1) limited = await api('/api/trips', { method: 'POST', headers: { 'CF-Connecting-IP': '198.51.100.77' }, body: {} });
   assert.equal(limited.response.status, 429, 'rate limit 정상 동작');
 
-  await api(`/api/trips/${id}`, { method: 'DELETE', token: owner });
-  console.log('18 API integration checks passed');
+  let recoveryLimited;
+  for (let i = 0; i < 9; i += 1) recoveryLimited = await api('/api/recovery/redeem', { method: 'POST', headers: { 'CF-Connecting-IP': '198.51.100.88' }, body: { tripId: id, recoveryKey: 'AAAA-BBBB-CCCC-DDDD-EEEE' } });
+  assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
+
+  await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
+  console.log('37 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
