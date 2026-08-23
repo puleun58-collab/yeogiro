@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node -e \"const f=require('fs');f.rmSync('dist',{recursive:true,force:true});f.mkdirSync('dist',{recursive:true});for(const file of ['index.html','sync.js','sync-ui.js','travel-logic.js','data-integrity.js','offline.html','manifest.webmanifest','sw.js'])f.copyFileSync(file,'dist/'+file);f.mkdirSync('dist/assets',{recursive:true});for(const dir of ['icons','fonts'])f.cpSync('assets/'+dir,'dist/assets/'+dir,{recursive:true})\"",
     "check": "node --check worker.js && node --check sync.js && node --check sync-ui.js && node --check travel-logic.js && node --check sw.js",
-    "test": "npm run check && node tests/travel-logic.unit.cjs && node tests/data-integrity.unit.cjs && node tests/sync-ui.unit.mjs && node tests/pwa.static.mjs && node tests/backup.static.mjs && node tests/api.integration.mjs",
+    "test": "npm run check && node tests/travel-logic.unit.cjs && node tests/data-integrity.unit.cjs && node tests/sync-ui.unit.mjs && node tests/access-management.static.mjs && node tests/pwa.static.mjs && node tests/backup.static.mjs && node tests/api.integration.mjs",
     "test:production-smoke": "node tests/production-smoke.mjs",
     "deploy": "npm run build && wrangler deploy"
   },

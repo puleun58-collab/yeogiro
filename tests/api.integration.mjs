@@ -80,6 +80,16 @@ try {
   const viewerMember = accessBefore.data.members.find(member => member.role === 'viewer');
   assert.ok(accessBefore.data.sessions.some(session => session.id === created.data.sessionId && session.current), '현재 기기 세션 표시');
 
+  const renamedOwnerSession = await api(`/api/trips/${id}/sessions/${created.data.sessionId}`, { method: 'PATCH', token: owner, body: { deviceName: '집 컴퓨터' } });
+  assert.equal(renamedOwnerSession.response.status, 200, '본인 기기 이름 변경 가능');
+  assert.equal(renamedOwnerSession.data.deviceName, '집 컴퓨터', '변경한 기기 이름 반환');
+  const ownerAccessAfterRename = await api(`/api/trips/${id}/access`, { token: owner });
+  assert.equal(ownerAccessAfterRename.data.sessions.find(session => session.id === created.data.sessionId).device_name, '집 컴퓨터', '기기 이름을 세션에 저장');
+  const resetOwnerSession = await api(`/api/trips/${id}/sessions/${created.data.sessionId}`, { method: 'PATCH', token: owner, body: { deviceName: '   ' } });
+  assert.equal(resetOwnerSession.data.deviceName, 'Windows', '빈 이름은 감지된 플랫폼 이름으로 복원');
+  assert.equal((await api(`/api/trips/${id}/sessions/${editorJoin.data.sessionId}`, { method: 'PATCH', token: editor, body: { deviceName: '내 iPad' } })).response.status, 200, 'editor도 본인 기기 이름 변경 가능');
+  assert.equal((await api(`/api/trips/${id}/sessions/${created.data.sessionId}`, { method: 'PATCH', token: editor, body: { deviceName: '다른 사람 기기' } })).response.status, 403, '다른 사람 기기 이름 변경 거부');
+
   const issued = await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: owner, body: {} });
   assert.equal(issued.response.status, 201, 'owner 복구키 생성');
   assert.match(issued.data.recoveryKey, /^(?:[A-Z2-9]{4}-){4}[A-Z2-9]{4}$/, '복구키 보관 형식');
@@ -169,7 +179,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('37 API integration checks passed');
+  console.log('43 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
