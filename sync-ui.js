@@ -10,7 +10,8 @@
     function conflict(detail) {
       const items = changedCount(detail.local.items, detail.remote.items), flights = changedCount(detail.local.flights, detail.remote.flights), lodgings = changedCount(detail.local.lodgings, detail.remote.lodgings);
       const summary = [items && `일정 ${items}개`, flights && `항공편 ${flights}개`, lodgings && `숙소 ${lodgings}개`].filter(Boolean).join(' · ') || '여행 정보가 변경됨';
-      openSheet(`<h2>다른 기기에서 여행이 변경되었습니다.</h2><div class="form"><div class="help-card"><b>변경된 항목</b>${summary}</div><p class="memo">반영할 변경사항을 선택해 주세요. 선택하기 전에는 어느 기기의 내용도 덮어쓰지 않습니다.</p><button class="save" data-conflict="remote">다른 기기 변경사항 반영</button><button class="cancel" data-conflict="local">이 기기 변경사항으로 저장</button></div>`);
+      const names={trip:'여행 정보',item:'일정',flight:'항공편',lodging:'숙소'},actions={created:'추가',updated:'수정',deleted:'삭제'},rows=(detail.changes||[]).slice(0,12).map(change=>`<div class="diff-row conflict-diff"><span class="diff-values"><b>${names[change.entityType]||'항목'} · ${actions[change.action]||'변경'}</b><span>${String(change.label||'이름 없는 항목').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>${change.fields?.length?`<small>${change.fields.join(' · ')}</small>`:''}</span></div>`).join('');
+      openSheet(`<h2>다른 기기에서 여행이 변경되었습니다.</h2><div class="form"><div class="help-card"><b>변경된 항목</b>${summary}</div>${rows?`<div class="diff-list">${rows}</div>`:''}<p class="memo">반영할 내용을 선택하기 전에는 어느 기기의 데이터도 덮어쓰지 않습니다.</p><button class="save" data-conflict="remote">다른 기기 변경사항 반영</button><button class="cancel" data-conflict="local">이 기기 변경사항으로 저장</button></div>`);
     }
     function details() {
       const status = YeogiroStore.status();

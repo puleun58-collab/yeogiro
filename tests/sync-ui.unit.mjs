@@ -27,9 +27,11 @@ ui.details();
 assert.match(sheet, /이 기기에 안전하게 저장/);
 assert.match(sheet, /인터넷 연결 후 자동으로 동기화/);
 
-ui.conflict({ local: { items: [{ id: 'a', name: '내 일정' }], flights: [], lodgings: [] }, remote: { items: [{ id: 'a', name: '서버 일정' }], flights: [], lodgings: [] } });
+ui.conflict({ local: { items: [{ id: 'a', name: '내 일정' }], flights: [], lodgings: [] }, remote: { items: [{ id: 'a', name: '서버 일정' }], flights: [], lodgings: [] }, changes: [{ action: 'updated', entityType: 'item', entityId: 'a', label: '내 일정', fields: ['name', 'time'] }] });
 assert.match(sheet, /일정 1개/);
+assert.match(sheet, /일정 · 수정/);
+assert.match(sheet, /name · time/);
 assert.match(sheet, /다른 기기 변경사항 반영/);
 assert.match(sheet, /이 기기 변경사항으로 저장/);
 assert.doesNotMatch(sheet, /서버 최신 내용 사용|내 변경사항 다시 적용/);
-console.log('11 sync UI checks passed');
+console.log('13 sync UI checks passed');

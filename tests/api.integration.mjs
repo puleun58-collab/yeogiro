@@ -58,6 +58,8 @@ try {
   assert.deepEqual({ endTime: created.data.trip.items[0].endTime, preparationMinutes: created.data.trip.items[0].preparationMinutes }, { endTime: '11:15', preparationMinutes: 20 }, '일정 종료·준비시간 저장 및 조회');
   const owner = created.data.accessToken;
   assert.ok(created.data.sessionId, '여행 생성 시 기기 세션 발급');
+  const createdActivity = await api(`/api/trips/${id}/activity`, { token: owner });
+  assert.ok(createdActivity.data.activities.some(entry => entry.action === 'created' && entry.entity_type === 'trip'), '여행 생성 활동 기록');
 
   const invalid = await api(`/api/trips/${id}`, { token: 'not-a-valid-token' });
   assert.equal(invalid.response.status, 401, '잘못된 access token 거부');
@@ -168,6 +170,7 @@ try {
   const conflict = await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: trip(id), baseRevision: 1 } });
   assert.equal(conflict.response.status, 409, 'revision 충돌 시 409');
   assert.equal(conflict.data.trip.revision, 2, '충돌 응답에 최신 trip 포함');
+  assert.ok(Array.isArray(conflict.data.changes) && conflict.data.changes.length, '충돌 응답에 변경 항목 비교 제공');
 
   const impossibleDate = trip(id); impossibleDate.items[0].day = '2026-02-30';
   assert.equal((await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: impossibleDate, baseRevision: 2 } })).response.status, 400, '존재하지 않는 날짜 차단');
@@ -175,6 +178,36 @@ try {
   assert.equal((await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: reversedFlight, baseRevision: 2 } })).response.status, 400, '출발일보다 빠른 도착일 차단');
   const missingTarget = trip(id); missingTarget.files.push({ id: `${id}_file`, entityType: 'flight', entityId: 'deleted-flight', name: 'missing.pdf', mime: 'application/pdf', size: 10, deviceId: 'test-device' });
   assert.equal((await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: missingTarget, baseRevision: 2 } })).response.status, 400, '삭제된 문서 연결 대상 차단');
+
+  const withoutItem = structuredClone(editedTrip); withoutItem.items = [];
+  const deletedItem = await api(`/api/trips/${id}`, { method: 'PUT', token: editor, body: { trip: withoutItem, baseRevision: 2 } });
+  assert.equal(deletedItem.response.status, 200, '일정 삭제 동기화 성공');
+  const trash = await api(`/api/trips/${id}/trash`, { token: owner });
+  assert.equal(trash.response.status, 200, '권한 있는 구성원이 휴지통 조회');
+  assert.equal(trash.data.trash[0].entity_type, 'item', '삭제 일정이 휴지통에 보관');
+  assert.ok(!('snapshot_json' in trash.data.trash[0]), '휴지통 목록에서 민감한 스냅샷 비노출');
+  const activity = await api(`/api/trips/${id}/activity`, { token: viewer });
+  assert.equal(activity.response.status, 200, '보기 전용도 최근 변경 확인 가능');
+  assert.ok(activity.data.activities.some(entry => entry.action === 'deleted' && entry.entity_type === 'item'), '삭제 활동과 수정자 기록');
+  assert.ok(activity.data.activities.every(entry => !entry.snapshot_json), '활동 내역에 삭제 스냅샷 비노출');
+  assert.equal((await api(`/api/trips/${id}/trash/${trash.data.trash[0].id}/restore`, { method: 'POST', token: viewer, body: {} })).response.status, 403, '보기 전용 휴지통 복원 차단');
+  const restoredItem = await api(`/api/trips/${id}/trash/${trash.data.trash[0].id}/restore`, { method: 'POST', token: editor, body: {} });
+  assert.equal(restoredItem.response.status, 200, '편집 가능한 구성원이 삭제 일정 복원');
+  assert.ok(restoredItem.data.trip.items.some(item => item.id === `${id}_item`), '복원 후 기존 일정 ID와 내용 유지');
+  assert.equal((await api(`/api/trips/${id}/trash/${trash.data.trash[0].id}/restore`, { method: 'POST', token: editor, body: {} })).response.status, 404, '같은 휴지통 항목 중복 복원 차단');
+  const withDocument = structuredClone(restoredItem.data.trip), documentId = `${id}_document`;
+  withDocument.files.push({ id: documentId, entityType: 'item', entityId: `${id}_item`, name: '예약서.pdf', mime: 'application/pdf', size: 120, deviceId: 'test-device' });
+  const documentAdded = await api(`/api/trips/${id}`, { method: 'PUT', token: editor, body: { trip: withDocument, baseRevision: 4 } });
+  assert.equal(documentAdded.response.status, 200, '예약 서류 메타데이터 추가 기록');
+  const withoutDocument = structuredClone(documentAdded.data.trip); withoutDocument.files = withoutDocument.files.filter(file => file.id !== documentId);
+  const documentDeleted = await api(`/api/trips/${id}`, { method: 'PUT', token: editor, body: { trip: withoutDocument, baseRevision: 5 } });
+  assert.equal(documentDeleted.response.status, 200, '예약 서류 삭제 기록');
+  const documentTrash = await api(`/api/trips/${id}/trash`, { token: editor });
+  const trashedDocument = documentTrash.data.trash.find(entry => entry.entity_id === documentId);
+  assert.ok(trashedDocument && trashedDocument.entity_type === 'file', '삭제한 예약 서류 메타데이터를 휴지통에 보관');
+  const documentRestored = await api(`/api/trips/${id}/trash/${trashedDocument.id}/restore`, { method: 'POST', token: editor, body: {} });
+  assert.equal(documentRestored.response.status, 200, '예약 서류 메타데이터 복원');
+  assert.ok(documentRestored.data.trip.files.some(file => file.id === documentId), '복원한 예약 서류가 기존 일정에 다시 연결');
 
   const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false } });
   await api(`/api/trips/${id}/invites/${revokedInvite.data.id}`, { method: 'DELETE', token: owner });

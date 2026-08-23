@@ -16,5 +16,8 @@ assert.match(source, /id="displayNameForm"[\s\S]*maxlength="40"/, '표시명 변
 assert.match(source, /function deviceLinkSheet[\s\S]*새 기기 연결 코드/, '공유 구성원 새 기기 연결 화면 제공');
 assert.match(source, /function askConfirm/, '관리 작업은 앱 내부 확인 화면 사용');
 assert.doesNotMatch(source, /dataset\.transferOwner\)\{if\(!confirm|dataset\.revokeMember\)\{if\(!confirm|dataset\.revokeSession\)\{[^}]*confirm/, '공유·기기 위험 작업에서 브라우저 확인창 제거');
+assert.match(source, /id="collaborationLog"[^>]*>🕘 변경 내역 및 휴지통/, '설정에서 변경 내역과 휴지통 접근');
+assert.match(source, /function collaborationSheet/, '변경 내역과 휴지통 모바일 관리 화면 제공');
+assert.match(source, /data-restore-trash/, '삭제 항목 복원 동작 제공');
 
-console.log('13 access management UI checks passed');
+console.log('16 access management UI checks passed');
