@@ -24,6 +24,8 @@ assert.match(source, /class="import-result-title"/, '분석 결과 제목에 전
 assert.match(source, /\.import-result>\.review-callout\{margin:0 0 16px\}/, '저장 전 확인과 첫 입력 필드 사이 간격 제공');
 const settingsSource = source.match(/function settings\(\)[\s\S]*?function searchResults/)?.[0] || '';
 assert.doesNotMatch(settingsSource, /editCurrent|changeBg/, '설정에서 홈과 중복되는 여행 편집·배경 사진 메뉴 제거');
+assert.match(settingsSource, /여행 관리[\s\S]*dataSafety[\s\S]*myShare[\s\S]*tripShare[\s\S]*collaborationLog[\s\S]*앱 기능[\s\S]*notify[\s\S]*allIcs[\s\S]*백업 및 복원[\s\S]*exportJson[\s\S]*importJson[\s\S]*앱 안내[\s\S]*초기화/, '설정 항목을 사용 목적과 우선순위에 따라 그룹화');
+assert.match(settingsSource, /installed\?'':'<button id="installFromSettings"/, '설치된 앱에서는 중복 설치 메뉴를 숨김');
 assert.match(source, /function previewFlightGroup/, '여러 항공편 분석 결과를 구간별로 확인');
 assert.match(source, /function confirmFlightGroupImport/, '여러 항공편을 별도 데이터로 저장');
 assert.match(source, /#analyzeDoc,#confirmImport,#confirmFlightGroup[^}]*width:100%[^}]*min-height:48px[^}]*border-radius:var\(--radius-control\)/, '여러 항공편 저장 버튼을 자동입력 공통 규격에 포함');
@@ -38,4 +40,4 @@ assert.match(source, /class="flight-airline"[\s\S]*class="flight-number"/, '항�
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('32 access management and extraction UI checks passed');
+console.log('34 access management and extraction UI checks passed');
