@@ -1,13 +1,14 @@
-const APP_CACHE = 'yeogiro-app-v44';
+const APP_CACHE = 'yeogiro-app-v45';
 const MAP_CACHE = 'yeogiro-map-v2';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/data-integrity.js?v=44',
-  '/sync.js?v=44',
-  '/sync-ui.js?v=44',
-  '/travel-logic.js?v=44',
+  '/data-integrity.js?v=45',
+  '/sync.js?v=45',
+  '/sync-ui.js?v=45',
+  '/travel-logic.js?v=45',
+  '/pwa-update.js?v=45',
   '/offline.html',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v7.png',
@@ -20,7 +21,6 @@ const APP_SHELL = [
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(APP_CACHE).then(cache => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -89,5 +89,5 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('message', event => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data === 'SKIP_WAITING' || event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });

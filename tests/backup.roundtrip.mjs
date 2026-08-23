@@ -46,7 +46,7 @@ globalThis.indexedDB = {
 globalThis.window = globalThis;
 globalThis.window.dispatchEvent = () => {};
 globalThis.addEventListener = () => {};
-Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { onLine: false, userAgent: 'backup-test', storage: { estimate: async () => ({ usage: 4096, quota: 1048576 }) } } });
+Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { onLine: false, userAgent: 'backup-test', storage: { estimate: async () => ({ usage: 4096, quota: 1048576 }), persisted: async () => false, persist: async () => true } } });
 globalThis.location = { origin: 'https://example.test', search: '', hash: '', pathname: '/' };
 globalThis.history = { replaceState() {} };
 globalThis.matchMedia = () => ({ matches: false });
@@ -123,10 +123,13 @@ assert.equal(remappedDoc.size, new Blob(['reservation-original']).size, 'metadat
 stores.get('files').delete(remappedDoc.id);
 audit = await store.auditFiles(matchingTrips[1]);
 assert.equal(audit.find(file => file.id === remappedDoc.id).reason, 'missing', 'audit treats a metadata-only document as a normal missing-original state');
-assert.equal((await store.dataSafety(matchingTrips[1])).storage.supported, true, 'storage estimate is included when the browser supports it');
+const safety = await store.dataSafety(matchingTrips[1]);
+assert.equal(safety.storage.supported, true, 'storage estimate is included when the browser supports it');
+assert.equal(safety.storage.persisted, false, 'persistent-storage state is reported without requesting permission');
+assert.equal(safety.storage.canPersist, true, 'persistent-storage capability is reported separately');
 
 const beforeInvalid = structuredClone(importedAsNew);
 assert.throws(() => store.previewBackup({ format: 'yeogiro-backup-v2', state: { trips: [] } }, importedAsNew), /여행 데이터/);
 assert.deepEqual(importedAsNew, beforeInvalid, 'invalid restore preview does not mutate current data');
 
-console.log('18 backup round-trip checks passed');
+console.log('20 backup round-trip checks passed');

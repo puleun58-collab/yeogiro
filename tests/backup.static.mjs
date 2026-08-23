@@ -19,5 +19,6 @@ assert.match(source, /previewBackup[\s\S]*fileSummary=value\?\.fileSummary\|\|em
 assert.match(source, /async function auditFiles[\s\S]*trip\.heroFileId[\s\S]*reason:mismatch\?'metadata':local\?'local':'missing'/, 'file audit includes hero images and classifies actionable states');
 assert.match(source, /async function repairFileMetadata/, 'local originals can safely repair stale size and mime metadata');
 assert.match(source, /navigator\.storage\?\.estimate/, 'data safety reports browser storage usage when supported');
+assert.match(source, /navigator\.storage\?\.persisted/, 'data safety checks persistent storage protection without mutating data');
 assert.match(source, /files:\{[\s\S]*bytes:[\s\S]*hero:[\s\S]*issues:/, 'data safety exposes file bytes, hero count, and issue details');
-console.log('18 backup and restore checks passed');
+console.log('19 backup and restore checks passed');
