@@ -66,6 +66,9 @@ try {
   const editorJoin = await api('/api/invites/redeem', { method: 'POST', body: { token: editorInvite.data.token, displayName: '편집자' } });
   assert.equal(editorJoin.response.status, 201, 'editor 초대 및 참여');
   const editor = editorJoin.data.accessToken;
+  const editorPreview = await api('/api/invites/preview', { method: 'POST', body: { token: editorInvite.data.token } });
+  assert.equal(editorPreview.response.status, 200, '초대 참여 전 여행 ID 확인');
+  assert.equal(editorPreview.data.tripId, id, '초대 중복 확인용 여행 ID 반환');
 
   const viewerInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: true } });
   const viewerJoin = await api('/api/invites/redeem', { method: 'POST', body: { token: viewerInvite.data.token, displayName: '뷰어' } });
@@ -73,6 +76,33 @@ try {
   const viewer = viewerJoin.data.accessToken;
   const reused = await api('/api/invites/redeem', { method: 'POST', body: { token: viewerInvite.data.token } });
   assert.ok([404, 409].includes(reused.response.status), '1회용 초대 재사용 거부');
+
+  const editorSelf = await api(`/api/trips/${id}/me`, { token: editor });
+  assert.equal(editorSelf.response.status, 200, '모든 권한이 내 공유 정보 조회 가능');
+  assert.equal(editorSelf.data.member.role, 'editor', '내 실제 권한 반환');
+  assert.ok(editorSelf.data.sessions.every(item => item.id === editorJoin.data.sessionId), '내 기기만 반환');
+  const renamedEditor = await api(`/api/trips/${id}/me`, { method: 'PATCH', token: editor, body: { displayName: '여행 친구' } });
+  assert.equal(renamedEditor.data.displayName, '여행 친구', '표시명 변경');
+  assert.equal((await api(`/api/trips/${id}/me`, { method: 'PATCH', token: editor, body: { displayName: '   ' } })).response.status, 400, '빈 표시명 거부');
+
+  const deviceCode = await api(`/api/trips/${id}/me/device-code`, { method: 'POST', token: editor, body: {} });
+  assert.equal(deviceCode.response.status, 201, '편집자도 새 기기 연결 코드 생성');
+  assert.match(deviceCode.data.code, /^(?:[A-Z2-9]{4}-){3}[A-Z2-9]{4}$/, '기기 연결 코드 표시 형식');
+  assert.ok(!deviceCode.data.connectUrl.includes(deviceCode.data.code), '연결 URL에 코드 원문 미포함');
+  const badDeviceCode = await api('/api/device-links/redeem', { method: 'POST', body: { tripId: id, code: 'AAAA-BBBB-CCCC-DDDD' } });
+  assert.equal(badDeviceCode.response.status, 401, '잘못된 기기 연결 코드 거부');
+  const linkedEditor = await api('/api/device-links/redeem', { method: 'POST', body: { tripId: id, code: deviceCode.data.code, deviceId: 'editor-second', deviceName: '여행용 iPad', platform: 'iOS', clientType: 'pwa' } });
+  assert.equal(linkedEditor.response.status, 201, '새 기기에 기존 구성원 세션 생성');
+  assert.equal(linkedEditor.data.role, 'editor', '새 기기에서도 권한 상승 없음');
+  assert.equal((await api('/api/device-links/redeem', { method: 'POST', body: { tripId: id, code: deviceCode.data.code } })).response.status, 401, '1회용 기기 연결 코드 재사용 거부');
+  assert.equal((await api(`/api/trips/${id}/sessions/${linkedEditor.data.sessionId}`, { method: 'DELETE', token: editor })).response.status, 200, '편집자가 본인 다른 기기 연결 해제');
+  assert.equal((await api(`/api/trips/${id}`, { token: linkedEditor.data.accessToken })).response.status, 401, '해제된 본인 기기 세션 즉시 401');
+  assert.equal((await api(`/api/trips/${id}/me`, { method: 'DELETE', token: owner })).response.status, 409, '여행 관리자는 관리자 넘기기 전 나가기 차단');
+
+  const leavingInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: true } });
+  const leavingJoin = await api('/api/invites/redeem', { method: 'POST', body: { token: leavingInvite.data.token, displayName: '나갈 사람' } });
+  assert.equal((await api(`/api/trips/${id}/me`, { method: 'DELETE', token: leavingJoin.data.accessToken })).response.status, 204, '공유 구성원 스스로 나가기');
+  assert.equal((await api(`/api/trips/${id}`, { token: leavingJoin.data.accessToken })).response.status, 401, '나간 구성원의 모든 세션 무효화');
 
   const accessBefore = await api(`/api/trips/${id}/access`, { token: owner });
   const ownerMember = accessBefore.data.members.find(member => member.role === 'owner');
