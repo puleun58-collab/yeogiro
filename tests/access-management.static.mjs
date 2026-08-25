@@ -15,7 +15,7 @@ assert.doesNotMatch(worker, /여행 관리자만|함께 쓰는 사람/, '서버 
 assert.match(source, /id="deviceNameForm"[\s\S]*maxlength="40"/, '기기 이름 변경 폼과 길이 제한 제공');
 assert.match(source, /days>=90\?'오래된 연결':!session\.current&&days>=30\?'30일 이상 사용하지 않음'/, '오래된 기기 안내 기준 제공');
 assert.match(source, /management-primary-action[\s\S]*min-height:48px/, '관리 기본 버튼 규격 통일');
-assert.match(source, /function myShareSettings/, '내 공유 정보 화면 제공');
+assert.match(source, /function myShareSettings/, '내 정보 화면 제공');
 assert.match(source, /id="displayNameForm"[\s\S]*maxlength="40"/, '표시명 변경 폼 제공');
 assert.match(source, /function deviceLinkSheet[\s\S]*새 기기 연결 코드/, '공유 구성원 새 기기 연결 화면 제공');
 assert.match(source, /trip-access-stack[\s\S]*관리자 권한 복구[\s\S]*data-open-device-link>새 기기에 연결/, '여행 목록의 연결 동작 문구와 버튼 간격 통일');
@@ -25,8 +25,14 @@ assert.match(source, /prepOptions=\[\[0,'없음'\],\[10,'10분'\],\[20,'20분'\]
 assert.match(source, /name="preparationMinutes"[\s\S]*id="preparationHours"[\s\S]*id="preparationMinutePart"/, '시간·분 선택 결과를 기존 분 단위 필드로 유지');
 assert.match(source, /function askConfirm/, '관리 작업은 앱 내부 확인 화면 사용');
 assert.doesNotMatch(source, /dataset\.transferOwner\)\{if\(!confirm|dataset\.revokeMember\)\{if\(!confirm|dataset\.revokeSession\)\{[^}]*confirm/, '공유·기기 위험 작업에서 브라우저 확인창 제거');
-assert.match(source, /id="collaborationLog"[^>]*>🕘 변경 내역 및 휴지통/, '설정에서 변경 내역과 휴지통 접근');
-assert.match(source, /function collaborationSheet/, '변경 내역과 휴지통 모바일 관리 화면 제공');
+assert.match(source, /id="myShare"[^>]*>👤 내 정보/, '설정 메뉴에서 내 정보 명칭 사용');
+assert.match(source, /id="tripShare"[^>]*>🔗 공유 및 권한/, '설정 메뉴에서 공유 및 권한 명칭 사용');
+assert.match(source, /id="collaborationLog"[^>]*>🕘 기록 및 복구/, '설정에서 기록 및 복구 접근');
+assert.match(source, /function collaborationSheet/, '기록 및 복구 모바일 관리 화면 제공');
+assert.match(source, /<h2>기록 및 복구<\/h2>[\s\S]*<h3>휴지통<\/h3>[\s\S]*<h3>최근 변경<\/h3>/, '휴지통을 최근 변경보다 먼저 표시');
+assert.match(source, /function primaryActivity[\s\S]*type==='file'&&action==='updated'[\s\S]*heroFileId/, '내부 대표사진과 파일 메타데이터 기록을 기본 목록에서 제외');
+assert.match(source, /function groupActivities[\s\S]*600000/, '10분 이내 반복 기록 묶음 제공');
+assert.match(source, /function activityListMarkup[\s\S]*slice\(0,20\)[\s\S]*더 보기/, '최근 변경 기본 20개와 더보기 제공');
 assert.match(source, /data-restore-trash/, '삭제 항목 복원 동작 제공');
 assert.match(source, /class="import-result-title"/, '분석 결과 제목에 전용 간격 클래스 적용');
 assert.match(source, /\.import-result>\.review-callout\{margin:0 0 16px\}/, '저장 전 확인과 첫 입력 필드 사이 간격 제공');
