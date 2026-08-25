@@ -71,6 +71,72 @@ html{word-break:keep-all;overflow-wrap:normal;line-break:strict}body,button,inpu
 .settings{display:grid;gap:22px}.settings-group{display:grid;gap:9px}.settings-group-title{margin:0;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.03em}.settings-group button{margin-bottom:0}.settings-group.danger-zone{padding-top:5px;border-top:1px solid var(--line)}
 .danger-action{width:100%;min-height:48px;padding:13px 16px;border-radius:var(--radius-control);background:color-mix(in srgb,var(--accent-coral) 11%,var(--surface));color:#a23f2d;font-weight:800}.danger-action:hover{background:color-mix(in srgb,var(--accent-coral) 16%,var(--surface))}
 .flight-top{align-items:center}.flight-identity{display:flex;min-width:0;align-items:center;gap:5px;overflow:hidden;text-align:left}.flight-airline{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px;font-weight:700;line-height:1.35}.flight-number{flex:0 0 auto;color:var(--text);font-size:12px;font-weight:700;line-height:1.35}.flight-date{padding-top:0}.flight-detail-route{padding:17px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface-muted)}.flight-detail-route .flight-code{font-size:25px}.flight-detail-route .flight-time{font-size:18px}.flight-detail-route .flight-city{display:block;margin-top:7px;font-size:11px;font-weight:600}.flight-detail-route .flight-arrow{align-self:center;margin-top:0}.flight-import-list{display:grid;gap:14px}.flight-import-leg{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.flight-import-leg-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.flight-import-leg-head b{font-size:14px}.flight-import-leg-head small{color:var(--muted);font-size:11px}.flight-import-fields{display:grid;gap:10px}
+
+/* Toss reference adaptation: product UI tokens and explicit interaction states */
+:root{
+  color-scheme:light;
+  --primary-blue:#3182f6;
+  --primary-hover:#2272eb;
+  --primary-active:#1b64da;
+  --primary-disabled:#d0d5dc;
+  --primary-text:#191f28;
+  --background:#f7f8fa;
+  --surface:#f9fafb;
+  --surface-strong:#fff;
+  --surface-muted:#f2f4f6;
+  --control-soft-blue:#e8f3ff;
+  --control-soft-blue-hover:#dbeeff;
+  --control-soft-blue-active:#c9e2ff;
+  --control-soft-blue-disabled:#f2f4f6;
+  --line:#e5e8eb;
+  --line-strong:#d1d6db;
+  --text:#191f28;
+  --muted:#8b95a1;
+  --navy:#191f28;
+  --blue:#3182f6;
+  --accent:#3182f6;
+  --orange:#3182f6;
+  --accent-coral:#e42939;
+  --coral-soft:#fff0f1;
+  --gold:#8b95a1;
+  --on-primary:#fff;
+  --on-accent:#fff;
+  --focus-ring:rgba(49,130,246,.34);
+  --radius-card:16px;
+  --radius-control:12px;
+  --shadow:none;
+  --shadow-soft:none;
+  --container:960px;
+  --ease:cubic-bezier(.2,.8,.2,1)
+}
+html,body{background:var(--background)}
+body{background-image:none;font-family:"Toss Product Sans","LINE Seed KR","Apple SD Gothic Neo",system-ui,sans-serif;color:var(--text);font-weight:400;letter-spacing:-.018em}
+button,a,input,textarea,select{transition:background-color .18s var(--ease),border-color .18s var(--ease),color .18s var(--ease),opacity .18s var(--ease),transform .12s var(--ease)}
+button:hover{transform:none}button:active{transform:scale(.98)}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
+button[disabled],button[aria-busy="true"]{cursor:not-allowed;opacity:1;transform:none}
+button[aria-busy="true"]{color:transparent!important;position:relative}
+button[aria-busy="true"]::after{content:"";position:absolute;inset:50% auto auto 50%;width:16px;height:16px;margin:-8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;color:#fff;animation:sync-spin .7s linear infinite}
+.appbar{height:calc(64px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 20px 0;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);box-shadow:none;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.appbar-inner{height:64px}.logo{color:var(--text);font-size:20px;font-weight:700;letter-spacing:-.04em}.logo .brand-mark{border-radius:10px;box-shadow:none}
+.iconbtn,.pillbtn,.bottom .secondary{min-height:40px;border-radius:10px;background:var(--surface-muted);color:var(--body,#4e5968);font-weight:600;box-shadow:none}
+.iconbtn:hover,.pillbtn:hover,.bottom .secondary:hover{background:#e5e8eb}.iconbtn:active,.pillbtn:active,.bottom .secondary:active{background:#d1d6db}
+.hero{min-height:272px;background-color:#eef5ff;border-bottom:0;color:var(--text)}.hero-inner{min-height:272px;padding:48px 28px 38px;grid-template-columns:1fr}.hero::after,.hero-orbit{display:none}.hero h1{max-width:720px;margin-bottom:12px;font-size:clamp(36px,6vw,56px);line-height:1.08;letter-spacing:-.055em;font-weight:700}.hero small{margin-bottom:10px;color:var(--muted);font-weight:600}.hero p{max-width:56ch;margin-bottom:20px;color:#4e5968;line-height:1.55}.dday{padding:6px 10px;border-radius:8px;background:var(--control-soft-blue);color:#1b64da;font-weight:600;box-shadow:none}
+.hero.has-photo{color:#fff;background-image:linear-gradient(90deg,rgba(25,31,40,.72),rgba(25,31,40,.22)),var(--hero)}.hero.has-photo .hero-copy{text-shadow:none}.hero.has-photo small,.hero.has-photo p{color:rgba(255,255,255,.82)}
+.camera{top:20px;right:24px;height:40px;padding:0 14px;border:0;border-radius:10px;background:rgba(255,255,255,.88);color:#4e5968;font-size:13px;font-weight:600;box-shadow:none}
+.page-tabs{min-height:58px;padding-block:9px;background:#fff;border-bottom:1px solid var(--line)}.page-tabs button{flex:0 1 150px;border-radius:10px;color:var(--muted);font-weight:600}.page-tabs .on{background:var(--surface-muted);color:var(--text);box-shadow:none}
+.datebar{top:calc(64px + env(safe-area-inset-top));background:rgba(255,255,255,.95);border-bottom:1px solid var(--line);box-shadow:none}.datechip{min-width:88px;border-radius:10px;background:var(--surface-muted);color:var(--muted)}.datechip.on{background:var(--primary-blue);color:#fff;box-shadow:none}
+.content{padding-top:32px}.section-title{color:var(--text);font-weight:700}.card,.sheet{border:0;background:#fff;box-shadow:none}.card{border-radius:var(--radius-card)}
+.smart-import{min-height:88px;background:var(--control-soft-blue)}.smart-import:hover{border-color:transparent;background:#dbeeff;box-shadow:none}.import-symbol{border-radius:14px;background:#fff;color:var(--primary-blue)}.smart-import b{color:var(--text);font-weight:600}.import-arrow{background:var(--primary-blue);color:#fff}
+.flight,.item,.lodging-card,.today-card,.journey{border:1px solid var(--line)}.flight:hover,.item:hover{border-color:var(--line-strong);box-shadow:none}.flight-code,.today-countdown,.today-stop.next strong,.time{color:var(--primary-blue)}.flight-arrow,.today-stop time{color:var(--muted)}
+.badge,.role-label,.state-label,.lodging-meta span{border-radius:6px;background:var(--surface-muted);color:var(--muted)}.alarm-badge{background:#fff0f1;color:var(--accent-coral)}
+.item[data-status="current"]{border-color:var(--primary-blue);box-shadow:none}.item[data-status="current"]::before{border-radius:6px;background:var(--primary-blue)}
+.actions button,.addline,.chips button,.journey-controls button,.trip-complete-actions button{background:var(--surface-muted);color:#4e5968;font-weight:600}.actions button:hover,.addline:hover,.chips button:hover,.journey-controls button:hover{background:#e5e8eb}
+.bottom{bottom:12px;padding:7px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.96);box-shadow:none}.bottom button,.bottom .secondary{min-height:56px;border-radius:16px;font-size:17px;font-weight:600;box-shadow:none}.bottom .primary,.save,.management-primary-action,.recovery-card button,#analyzeDoc{background:var(--primary-blue);color:#fff;box-shadow:none}.bottom .primary:hover,.save:hover,.management-primary-action:hover,.recovery-card button:hover,#analyzeDoc:hover{background:var(--primary-hover)}.bottom .primary:active,.save:active,.management-primary-action:active,.recovery-card button:active,#analyzeDoc:active{background:var(--primary-active)}.bottom .primary:disabled,.save:disabled,.management-primary-action:disabled,.recovery-card button:disabled,#analyzeDoc:disabled{background:var(--primary-disabled);color:#fff}
+.field label{color:#4e5968;font-weight:600}.field input,.field textarea,.field select{min-height:48px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text)}.field input:hover,.field textarea:hover,.field select:hover{border-color:var(--line-strong)}.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary-blue);box-shadow:0 0 0 3px var(--focus-ring);outline:0}.field input:disabled,.field textarea:disabled,.field select:disabled{background:var(--surface-muted);color:var(--muted)}.field input[readonly],.field textarea[readonly]{background:var(--surface);color:#4e5968}
+.sheet{border-radius:24px 24px 0 0}.grab{background:#d1d6db}.overlay{background:rgba(25,31,40,.48)}.toast{background:#333d4b;border-radius:10px}.danger-action,.delete,.document-action-stack .delete,.access-actions .delete{background:#fff0f1;color:var(--accent-coral)}
+.progress i,.pin.current .pin-dot{background:var(--primary-blue)}
+@media(max-width:699px){.hero{min-height:248px}.hero-inner{min-height:248px;padding:46px 20px 28px}.hero h1{font-size:38px}.content{padding-top:24px}.bottom{width:calc(100% - 20px)}.sheet{border-radius:24px 24px 0 0}}
 </style></head><body>
 <header class="appbar"><div class="appbar-inner"><a class="logo" href="#hero" aria-label="여기로 홈"><img class="brand-mark" src="/assets/icons/apple-touch-icon-v7.png" alt=""><span>여기로</span></a><button class="sync-status" id="syncStatus" type="button">준비 중</button><div class="spacer"></div><button class="iconbtn add-trip" id="tripSearch" aria-label="여행 내 검색">⌕</button><button class="iconbtn install-btn hide" id="installApp">앱 설치</button><button class="pillbtn trip-pick" id="tripPick" aria-label="여행 선택">여행 ▾</button><button class="iconbtn add-trip" data-open="newTrip" aria-label="새 여행 만들기">＋</button></div></header><button class="sync-notice hide" id="syncNotice" type="button" aria-hidden="true"><span id="syncNoticeText"></span><span class="sync-notice-arrow" aria-hidden="true">›</span></button>
 <section class="hero" id="hero"><div class="hero-inner"><button class="camera" id="camera" aria-label="여행 배경 사진 변경">사진 변경</button><div class="hero-copy"><small id="heroLabel"></small><h1 id="heroTitle"></h1><p id="heroSub"></p><span class="dday" id="dday"></span></div><div class="hero-orbit" aria-hidden="true"><span></span></div></div></section>
