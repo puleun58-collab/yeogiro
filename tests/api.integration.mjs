@@ -189,6 +189,10 @@ try {
   const activity = await api(`/api/trips/${id}/activity`, { token: viewer });
   assert.equal(activity.response.status, 200, '보기 전용도 최근 변경 확인 가능');
   assert.ok(activity.data.activities.some(entry => entry.action === 'deleted' && entry.entity_type === 'item'), '삭제 활동과 수정자 기록');
+  assert.ok(activity.data.activities.some(entry => entry.details?.category === 'member' && entry.action === 'created'), '구성원 참여를 기존 감사 로그 구조에 기록');
+  assert.ok(activity.data.activities.some(entry => entry.details?.category === 'member' && entry.action === 'updated'), '내 이름 변경을 기존 감사 로그 구조에 기록');
+  assert.ok(activity.data.activities.some(entry => entry.details?.category === 'access' && entry.action === 'updated'), '공유 권한 변경을 기존 감사 로그 구조에 기록');
+  assert.ok(activity.data.activities.some(entry => entry.details?.category === 'member' && entry.action === 'deleted'), '구성원 제외를 기존 감사 로그 구조에 기록');
   assert.ok(activity.data.activities.every(entry => !entry.snapshot_json), '활동 내역에 삭제 스냅샷 비노출');
   assert.equal((await api(`/api/trips/${id}/trash/${trash.data.trash[0].id}/restore`, { method: 'POST', token: viewer, body: {} })).response.status, 403, '보기 전용 휴지통 복원 차단');
   const restoredItem = await api(`/api/trips/${id}/trash/${trash.data.trash[0].id}/restore`, { method: 'POST', token: editor, body: {} });
@@ -242,7 +246,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('43 API integration checks passed');
+  console.log('47 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;

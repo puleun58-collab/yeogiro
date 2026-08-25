@@ -35,6 +35,7 @@ assert.equal(primaryActivity(activity({ entity_type: 'file' })), false, '예약 
 assert.equal(primaryActivity(activity({ entity_type: 'trip', details: { fields: ['heroFileId'] } })), false, '대표사진 내부 저장 변경은 기타 기록으로 분류');
 assert.equal(primaryActivity(activity({ entity_type: 'file', action: 'deleted' })), true, '예약 서류 삭제는 기본 최근 변경에 표시');
 assert.equal(primaryActivity(activity({ entity_type: 'member', action: 'updated' })), true, '공유 권한 변경 형식은 기본 최근 변경에 표시');
+assert.equal(primaryActivity(activity({ entity_type: 'trip', details: { category: 'access', semanticAction: 'updated', fields: ['role'] } })), true, '기존 감사 스키마의 의미 분류를 공유 권한 변경으로 표시');
 
 const near = activity({ entity_id: 'item-2', label: '골든브릿지', created_at: '2026-08-23T07:06:00.000Z' });
 const far = activity({ entity_id: 'item-3', label: '호이안', created_at: '2026-08-23T06:50:00.000Z' });
@@ -46,4 +47,4 @@ assert.match(activityMarkup(groups[0]), /일정 2건 수정/, '묶음 제목에 
 const many = Array.from({ length: 22 }, (_, index) => ({ ...activity({ entity_id: `item-${index}`, created_at: `2026-08-23T${String(23 - Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '40' : '55'}:00.000Z` }), entries: [activity({ entity_id: `item-${index}` })] }));
 assert.match(activityListMarkup(many), /이전 기록 2건 더 보기/, '기본 20개 이후 기록은 더보기로 제공');
 
-console.log('9 activity history UI checks passed');
+console.log('10 activity history UI checks passed');
