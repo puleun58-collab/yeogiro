@@ -146,9 +146,20 @@ try {
   const revokedSession = await api(`/api/trips/${id}/sessions/${recovered.data.sessionId}`, { method: 'DELETE', token: owner });
   assert.equal(revokedSession.response.status, 200, '특정 기기 세션 해제');
   assert.equal((await api(`/api/trips/${id}`, { token: recoveredToken })).response.status, 401, 'revoked session은 즉시 401');
-  assert.equal((await api(`/api/trips/${id}/access`, { token: editor })).response.status, 403, 'editor는 기기·멤버 관리 불가');
+  const editorAccess = await api(`/api/trips/${id}/access`, { token: editor });
+  assert.equal(editorAccess.response.status, 200, 'editor도 참여자 목록 확인 가능');
+  assert.equal(editorAccess.data.canManage, false, 'editor 관리 기능 비활성');
+  assert.ok(editorAccess.data.members.length >= 3, 'editor 응답에 참여자 목록 포함');
+  assert.deepEqual(editorAccess.data.invites, [], 'editor에게 초대 관리 정보 비공개');
+  assert.deepEqual(editorAccess.data.sessions, [], 'editor에게 다른 기기 세션 정보 비공개');
+  const viewerAccess = await api(`/api/trips/${id}/access`, { token: viewer });
+  assert.equal(viewerAccess.response.status, 200, 'viewer도 참여자 목록 확인 가능');
+  assert.equal(viewerAccess.data.canManage, false, 'viewer 관리 기능 비활성');
   assert.equal((await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: editor, body: {} })).response.status, 403, 'editor는 복구키 재발급 불가');
   assert.equal((await api(`/api/trips/${id}/sessions/${created.data.sessionId}`, { method: 'DELETE', token: editor })).response.status, 403, 'editor는 세션 해제 불가');
+  assert.equal((await api(`/api/trips/${id}/invites`, { method: 'POST', token: viewer, body: { role: 'editor' } })).response.status, 403, 'viewer 초대 생성 API 거부');
+  assert.equal((await api(`/api/trips/${id}/members/${editorMember.id}`, { method: 'PATCH', token: viewer, body: { role: 'viewer' } })).response.status, 403, 'viewer 권한 관리 API 거부');
+  assert.equal((await api(`/api/trips/${id}/members/${editorMember.id}`, { method: 'DELETE', token: viewer })).response.status, 403, 'viewer 참여자 제거 API 거부');
 
   assert.equal((await api(`/api/trips/${id}/members/${viewerMember.id}`, { method: 'PATCH', token: owner, body: { role: 'editor' } })).data.role, 'editor', 'viewer를 editor로 변경');
   assert.equal((await api(`/api/trips/${id}/members/${viewerMember.id}`, { method: 'PATCH', token: owner, body: { role: 'viewer' } })).data.role, 'viewer', 'editor를 viewer로 변경');
