@@ -94,4 +94,6 @@ npx wrangler d1 migrations apply yeogiro-db --remote
 npm run deploy
 ```
 
+`npm run deploy`는 구문 검사, 단위·통합 테스트, 실제 브라우저 기반 2기기 E2E, 프로덕션 빌드를 모두 통과한 경우에만 배포합니다. 최초 E2E 실행 전에는 `npx playwright install chromium`으로 브라우저를 설치하세요. 실기기 검증 항목은 [Release Checklist](docs/RELEASE_CHECKLIST.md)에 정리되어 있습니다.
+
 배포 설정에는 D1 `DB`, Workers AI `AI`, Static Assets `ASSETS` 바인딩이 필요합니다. R2는 활성화하지 않으며 PDF와 예약서류 이미지는 각 기기의 IndexedDB에 저장합니다. 공유용 여행 대표사진만 1.5MB 이하로 압축해 D1에 저장합니다.

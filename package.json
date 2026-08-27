@@ -5,9 +5,12 @@
   "scripts": {
     "build": "node -e \"const f=require('fs');f.rmSync('dist',{recursive:true,force:true});f.mkdirSync('dist',{recursive:true});for(const file of ['index.html','sync.js','sync-ui.js','travel-logic.js','data-integrity.js','pwa-update.js','offline.html','manifest.webmanifest','sw.js'])f.copyFileSync(file,'dist/'+file);f.mkdirSync('dist/assets',{recursive:true});for(const dir of ['icons','fonts'])f.cpSync('assets/'+dir,'dist/assets/'+dir,{recursive:true})\"",
     "check": "node --check worker.js && node --check sync.js && node --check sync-ui.js && node --check travel-logic.js && node --check pwa-update.js && node --check sw.js",
-    "test": "npm run check && node tests/travel-logic.unit.cjs && node tests/data-integrity.unit.cjs && node tests/sync-ui.unit.mjs && node tests/access-management.static.mjs && node tests/activity-history.unit.mjs && node tests/pwa.static.mjs && node tests/pwa-update.unit.mjs && node tests/backup.static.mjs && node tests/backup.roundtrip.mjs && node tests/api.integration.mjs",
+    "test": "npm run check && npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:unit": "node tests/travel-logic.unit.cjs && node tests/data-integrity.unit.cjs && node tests/sync-ui.unit.mjs && node tests/access-management.static.mjs && node tests/activity-history.unit.mjs && node tests/pwa.static.mjs && node tests/pwa-update.unit.mjs && node tests/backup.static.mjs && node tests/backup.roundtrip.mjs",
+    "test:integration": "node tests/api.integration.mjs",
+    "test:e2e": "node tests/e2e/multi-device.e2e.mjs",
     "test:production-smoke": "node tests/production-smoke.mjs",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm test && npm run build && wrangler deploy"
   },
   "repository": {
     "type": "git",
@@ -21,6 +24,7 @@
   },
   "homepage": "https://github.com/puleun58-collab/yeogiro#readme",
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "wrangler": "^4.125.0"
   }
 }

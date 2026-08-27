@@ -12,9 +12,10 @@ assert.ok(data.similarity('Grand Signature Hoi An', 'Grand Signature  Hoi-An') >
 
 const trip = {
   start: '2026-08-20', end: '2026-08-25',
-  flights: [{ id: 'f1', flightNumber: 'TW125', departDate: '2026-08-22', from: 'ICN', to: 'DAD' }],
-  lodgings: [{ id: 'l1', name: 'Grand Signature Hoi An', checkInDate: '2026-08-22', checkOutDate: '2026-08-24' }],
-  items: [{ id: 'i1', day: '2026-08-23', time: '10:00', name: '바나힐 투어', place: '바나힐' }]
+  flights: [{ id: 'f1', flightNumber: 'TW125', airline: "T'way Air", departDate: '2026-08-22', depart: '07:45', from: 'ICN', fromCity: '인천', to: 'DAD', toCity: '다낭', reservationNumber: 'FL-ABC-7788', userDocs: [{ id:'d1', name:'다낭 항공권.pdf' }] }],
+  lodgings: [{ id: 'l1', name: 'Grand Signature Hoi An', checkInDate: '2026-08-22', checkOutDate: '2026-08-24', address:'Hoi An', reservationNumber:'HT-9090', memo:'호이안 야경', userDocs:[] }],
+  items: [{ id: 'i1', day: '2026-08-23', time: '10:00', name: '바나힐 투어', place: '바나힐', memo:'케이블카 탑승', reservationNumber:'TOUR-123', userDocs:[] }],
+  files: []
 };
 assert.equal(data.findCandidates(trip, 'flight', { flightNumber: 'tw 125', departDate: '2026-08-22', from: 'icn', to: 'dad' })[0].id, 'f1');
 assert.equal(data.findCandidates(trip, 'lodging', { name: 'Grand Signature Hoi-An', checkInDate: '2026-08-22', checkOutDate: '2026-08-24' })[0].id, 'l1');
@@ -24,5 +25,14 @@ assert.ok(data.validateEntity('flight', { flightNumber: 'VJ879TW008', departDate
 assert.ok(data.validateEntity('flight', { flightNumber: 'VJ879', departDate: '2026-08-08', arriveDate: '2026-08-12', depart: '07:00', arrive: '09:40', from: 'ICN', to: 'DAD' }, trip).warnings.some(x => x.includes('날짜')));
 assert.ok(data.validateEntity('reservation', { name: '외부 일정', day: '2026-08-30', time: '10:00' }, trip).errors.some(x => x.includes('여행 기간 밖')));
 assert.equal(data.diffFields({ time: '07:00' }, { time: '07:30' }, ['time']).length, 1);
+assert.equal(data.searchTrip(trip, '바나힐').일정[0].id, 'i1', '한글 일정·장소 검색');
+assert.equal(data.searchTrip(trip, 'tw 125').항공편[0].id, 'f1', '공백을 무시한 편명 검색');
+assert.equal(data.searchTrip(trip, 'dad').항공편[0].id, 'f1', '공항 코드 검색');
+assert.equal(data.searchTrip(trip, 'grand signature').숙소[0].id, 'l1', '숙소명 검색');
+assert.equal(data.searchTrip(trip, 'HT9090').숙소[0].id, 'l1', '특수문자를 무시한 예약번호 검색');
+assert.equal(data.searchTrip(trip, '다낭항공권').예약서류[0].id, 'd1', '예약서류 파일명 검색');
+assert.equal(data.searchTrip(trip, '호이안 야경').숙소[0].id, 'l1', '메모 검색');
+assert.equal(Object.values(data.searchTrip(trip, '없는검색어')).flat().length, 0, '검색 결과 없음');
+assert.equal(data.searchTrip(trip, 'TW125').항공편[0].score > data.searchTrip(trip, '다낭').항공편[0].score, true, '편명 완전 일치를 도시 검색보다 우선');
 assert.deepEqual(data.backupSummary({ trips: [{ items: [{ userDocs: [{ id: 'd1' }] }], flights: [{}], lodgings: [], files: [] }] }), { trips: 1, items: 1, flights: 1, lodgings: 0, documents: 1, files: 1 });
-console.log('17 data integrity checks passed');
+console.log('26 data integrity checks passed');

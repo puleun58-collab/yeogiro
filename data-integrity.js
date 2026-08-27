@@ -34,6 +34,44 @@
     let common = 0; for (const token of aa) if (bb.has(token)) common += 1;
     return (2 * common) / (aa.size + bb.size);
   }
+  function searchScore(query, fields) {
+    const q = normalize(query); if (!q) return 0;
+    let best = 0;
+    for (const field of fields || []) {
+      const value = normalize(field?.value); if (!value) continue;
+      const weight = Number(field?.weight) || 1;
+      if (value === q) best = Math.max(best, 100 + weight);
+      else if (value.startsWith(q)) best = Math.max(best, 75 + weight);
+      else if (value.includes(q)) best = Math.max(best, 50 + weight);
+    }
+    return best;
+  }
+  function searchTrip(trip, query) {
+    const groups = { '일정': [], '항공편': [], '숙소': [], '예약서류': [] }, q = normalize(query);
+    if (!q || !trip) return groups;
+    const push = (group, result, fields) => { const score = searchScore(q, fields); if (score) groups[group].push({ ...result, score }); };
+    for (const item of trip.items || []) push('일정', { type:'item', id:item.id, title:item.name, sub:`${item.day || ''} · ${item.time || ''}${item.place ? ` · ${item.place}` : ''}` }, [
+      { value:item.reservationNumber, weight:45 }, { value:item.name, weight:35 }, { value:item.place, weight:28 }, { value:item.provider, weight:22 }, { value:item.memo, weight:5 }
+    ]);
+    for (const flight of trip.flights || []) push('항공편', { type:'flight', id:flight.id, title:`${flight.flightNumber || '항공편'} · ${flight.from || '—'} → ${flight.to || '—'}`, sub:`${flight.departDate || ''} · ${flight.depart || ''}` }, [
+      { value:flight.flightNumber, weight:48 }, { value:flight.reservationNumber, weight:45 }, { value:flight.airline, weight:32 }, { value:flight.from, weight:27 }, { value:flight.to, weight:27 }, { value:flight.fromCity, weight:24 }, { value:flight.toCity, weight:24 }, { value:flight.baggage, weight:4 }
+    ]);
+    for (const lodging of trip.lodgings || []) push('숙소', { type:'lodging', id:lodging.id, title:lodging.name, sub:`${lodging.checkInDate || ''} 체크인${lodging.address ? ` · ${lodging.address}` : ''}` }, [
+      { value:lodging.reservationNumber, weight:45 }, { value:lodging.name, weight:35 }, { value:lodging.address, weight:27 }, { value:lodging.memo, weight:5 }
+    ]);
+    const seen = new Set(), addDocument = (doc, owner, relation) => {
+      if (!doc?.id || seen.has(doc.id) || doc.id === trip.heroFileId) return; seen.add(doc.id);
+      push('예약서류', { type:'document', id:doc.id, title:doc.name, sub:`${relation}에 연결됨`, relationType:owner?.type || '', relationId:owner?.id || '' }, [
+        { value:doc.name, weight:15 }, { value:relation, weight:12 }, { value:owner?.reservationNumber, weight:10 }, { value:owner?.memo, weight:3 }
+      ]);
+    };
+    for (const item of trip.items || []) for (const doc of item.userDocs || []) addDocument(doc, { ...item, type:'item' }, item.name || '일정');
+    for (const flight of trip.flights || []) for (const doc of flight.userDocs || []) addDocument(doc, { ...flight, type:'flight' }, `${flight.flightNumber || '항공편'} 항공편`);
+    for (const lodging of trip.lodgings || []) for (const doc of lodging.userDocs || []) addDocument(doc, { ...lodging, type:'lodging' }, `${lodging.name || '숙소'} 숙소`);
+    for (const doc of trip.files || []) if (doc.entityType === 'trip') addDocument(doc, { ...trip, type:'trip' }, trip.title || '여행');
+    for (const list of Object.values(groups)) list.sort((a,b)=>b.score-a.score||String(a.title).localeCompare(String(b.title),'ko'));
+    return groups;
+  }
   function entityFromExtraction(x) {
     const kind = x?.kind || 'unknown', f = x?.flight || {}, l = x?.lodging || {}, r = x?.reservation || {};
     if (kind === 'flight') return { kind, entity: { ...f, reservationNumber: f.reservationNumber || x.reservationNumber || '' } };
@@ -108,5 +146,5 @@
     }
     return { trips: trips.length, items, flights, lodgings, documents: docs.size, files: files.size };
   }
-  return { normalize, normalizeFlightNumber, flightNumberParts, normalizeAirport, isValidDate, isValidTime, similarity, entityFromExtraction, flightEntitiesFromExtraction, findCandidates, validateEntity, diffFields, backupSummary };
+  return { normalize, normalizeFlightNumber, flightNumberParts, normalizeAirport, isValidDate, isValidTime, similarity, searchScore, searchTrip, entityFromExtraction, flightEntitiesFromExtraction, findCandidates, validateEntity, diffFields, backupSummary };
 });
