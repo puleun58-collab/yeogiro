@@ -60,4 +60,12 @@ assert.equal(weather.forecastState(null, '2026-08-20', { online: true }), 'missi
 assert.equal(weather.locationKey({ lat: 37.56654, lng: 126.97801 }), 'coord:37.567,126.978');
 assert.equal(weather.locationKey('  New   York '), 'city:new york');
 
-console.log('25 weather logic checks passed');
+const dayOld = { fetchedAt: '2026-08-20T00:00:00Z', daily: [{ date: '2026-08-20' }, { date: '2026-08-21' }] };
+assert.equal(weather.needsRefresh(dayOld, { now: Date.parse('2026-08-20T00:10:00Z'), today: '2026-08-20' }), false, 'a fresh forecast for today is reused');
+assert.equal(weather.needsRefresh(dayOld, { now: Date.parse('2026-08-20T01:00:00Z'), today: '2026-08-20' }), true, 'a forecast older than the refresh window is refetched');
+assert.equal(weather.needsRefresh(dayOld, { now: Date.parse('2026-08-21T00:05:00Z'), today: '2026-08-21' }), true, 'a new day forces a refetch even inside the refresh window');
+assert.equal(weather.needsRefresh({ fetchedAt: '2026-08-21T00:00:00Z', daily: [{ date: '2026-08-20' }] }, { now: Date.parse('2026-08-21T00:01:00Z'), today: '2026-08-21' }), true, 'a forecast that no longer covers today is refetched');
+assert.equal(weather.needsRefresh(null, { today: '2026-08-21' }), true, 'a missing forecast always refetches');
+assert.equal(weather.needsRefresh(dayOld, { now: Date.parse('2026-08-20T00:10:00Z') }), false, 'without a reference day only the age matters');
+
+console.log('31 weather logic checks passed');

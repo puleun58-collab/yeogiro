@@ -79,11 +79,19 @@
     if(Number.isFinite(fetched)&&Number.isFinite(Number(now))&&Number(now)-fetched>maxAgeMs)return'stale';
     return'normal';
   }
+  function needsRefresh(forecast,{now=Date.now(),maxAgeMs=30*60*1000,today=''}={}){
+    if(!forecast||!Array.isArray(forecast.daily)||!forecast.daily.length)return true;
+    const fetched=Date.parse(forecast.fetchedAt||'');
+    if(!Number.isFinite(fetched)||Number(now)-fetched>=maxAgeMs)return true;
+    const first=dateOf(forecast.daily[0]),last=dateOf(forecast.daily[forecast.daily.length-1]);
+    if(!DAY.test(today||''))return false;
+    return !first||first<today||!last||last<today;
+  }
   function locationKey(location){
     const point=coordinate(location);
     if(point)return`coord:${point.lat.toFixed(3)},${point.lng.toFixed(3)}`;
     const city=typeof location==='string'?location:location?.city??location?.name;
     return typeof city==='string'&&city.trim()?`city:${city.trim().normalize('NFC').toLocaleLowerCase().replace(/\s+/g,' ')}`:'';
   }
-  return{resolveDayLocations,nearestHourly,weatherCode,dailyAdvice,normalizeForecast,forecastState,locationKey};
+  return{resolveDayLocations,nearestHourly,weatherCode,dailyAdvice,normalizeForecast,forecastState,needsRefresh,locationKey};
 });

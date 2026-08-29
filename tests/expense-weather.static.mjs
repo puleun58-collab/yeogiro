@@ -79,7 +79,11 @@ assert.match(source, /nearestHourly\(hours,item\.time\)/, '일정 시간과 가�
 assert.match(source, /weather-item-note">☂ 비 가능성/, '야외 일정에만 보조 강수 정보를 표시');
 assert.match(source, /\$\{code\.icon\} \$\{esc\(code\.label\)\}/, '날씨를 아이콘과 글자로 함께 전달');
 assert.match(source, /tripPhase\(t,today\)==='after'\)\{node\.remove\(\)/, '종료된 여행에서는 날씨 카드를 노출하지 않음');
-assert.match(source, /Date\.now\(\)-Date\.parse\(cached\.fetchedAt\)<30\*60\*1000/, '같은 위치의 반복 호출을 캐시로 차단');
+assert.match(source, /needsRefresh\(cached,\{now:Date\.now\(\),maxAgeMs:30\*60\*1000,today:iso\(new Date\(\)\)\}\)/, '같은 위치의 반복 호출을 캐시로 차단하되 하루가 지나면 다시 조회');
+assert.match(source, /setInterval\(\(\)=>refreshForNewDay\(\),60000\)/, '앱을 켜 둔 상태에서도 날짜가 바뀌면 예보를 다시 불러옴');
+assert.match(source, /visibilitychange[\s\S]{0,160}refreshForNewDay\(\)\)renderWeather/, '앱으로 돌아올 때 날씨를 갱신');
+assert.match(source, /function pruneWeatherCache\(\)/, '지난 날짜만 담긴 저장 예보는 정리');
+assert.match(source, /setupPwa\(\);pruneWeatherCache\(\);render\(\)/, '시작할 때 오래된 예보 캐시를 정리');
 assert.match(source, /weatherRequests\.has\(key\)\)return weatherRequests\.get\(key\)/, '동시 렌더에서 중복 요청을 합침');
 assert.match(source, /data-weather-location>지역 \$\{weatherLocationIndex\+1\}\/\$\{locations\.length\}/, '하루에 여러 지역이면 출발지와 도착지 날씨를 각각 확인');
 assert.match(source, /weatherLocationDay!==selected\)\{weatherLocationDay=selected;weatherLocationIndex=0\}/, '날짜를 바꾸면 지역 선택을 초기화');
@@ -124,4 +128,4 @@ assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력
 assert.match(serviceWorker, /'\/expense-logic\.js\?v=53'/, '경비 로직을 오프라인 캐시에 포함');
 assert.match(serviceWorker, /'\/weather-logic\.js\?v=53'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('88 expense and weather integration checks passed');
+console.log('92 expense and weather integration checks passed');
