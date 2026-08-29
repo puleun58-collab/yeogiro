@@ -253,6 +253,10 @@ try {
   assert.equal(fallbackRate.response.status, 200, 'ECB 미지원 통화도 대체 소스로 조회');
   assert.ok(fallbackRate.data.rateMicros > 0, 'VND 환율도 마이크로 단위로 제공');
   assert.equal((await api('/api/exchange-rate?from=XXX&to=KRW')).response.status, 400, '지원하지 않는 통화 차단');
+  const koreanCity = await api('/api/weather?city=' + encodeURIComponent('다낭'));
+  assert.equal(koreanCity.response.status, 200, '한국어 도시명으로도 날씨 조회');
+  assert.ok(Array.isArray(koreanCity.data.daily.time) && koreanCity.data.daily.time.length > 0, '날짜별 예보 배열 제공');
+  assert.ok(koreanCity.data.timezone && koreanCity.data.fetchedAt, '현지 시간대와 기준 시각 제공');
 
   const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false } });
   await api(`/api/trips/${id}/invites/${revokedInvite.data.id}`, { method: 'DELETE', token: owner });
@@ -287,7 +291,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('64 API integration checks passed');
+  console.log('67 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;

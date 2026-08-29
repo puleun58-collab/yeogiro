@@ -5,6 +5,7 @@ const EXPENSE_CURRENCIES = new Set(['KRW','JPY','USD','VND','EUR']);
 const EXPENSE_CATEGORIES = new Set(['식비','카페','교통','숙소','항공','관광','쇼핑','기타']);
 const CURRENCY_DIGITS={KRW:0,JPY:0,USD:2,VND:0,EUR:2};
 const ECB_CURRENCIES=new Set(['KRW','JPY','USD','EUR']);
+const CITY_ALIASES={'서울':'Seoul','인천':'Incheon','부산':'Busan','대구':'Daegu','제주':'Jeju','강릉':'Gangneung','경주':'Gyeongju','속초':'Sokcho','여수':'Yeosu','전주':'Jeonju','다낭':'Da Nang','호이안':'Hoi An','하노이':'Hanoi','호찌민':'Ho Chi Minh City','호치민':'Ho Chi Minh City','나트랑':'Nha Trang','냐짱':'Nha Trang','푸꾸옥':'Phu Quoc','달랏':'Da Lat','하롱':'Ha Long','도쿄':'Tokyo','오사카':'Osaka','교토':'Kyoto','후쿠오카':'Fukuoka','삿포로':'Sapporo','오키나와':'Naha','나고야':'Nagoya','히로시마':'Hiroshima','벳푸':'Beppu','방콕':'Bangkok','치앙마이':'Chiang Mai','푸켓':'Phuket','파타야':'Pattaya','싱가포르':'Singapore','타이베이':'Taipei','타이페이':'Taipei','가오슝':'Kaohsiung','홍콩':'Hong Kong','마카오':'Macau','괌':'Hagatna','사이판':'Saipan','세부':'Cebu','마닐라':'Manila','보라카이':'Boracay','발리':'Denpasar','쿠알라룸푸르':'Kuala Lumpur','코타키나발루':'Kota Kinabalu','파리':'Paris','런던':'London','로마':'Rome','밀라노':'Milan','바르셀로나':'Barcelona','마드리드':'Madrid','프라하':'Prague','비엔나':'Vienna','취리히':'Zurich','뉴욕':'New York','로스앤젤레스':'Los Angeles','라스베이거스':'Las Vegas','샌프란시스코':'San Francisco','하와이':'Honolulu','호놀룰루':'Honolulu','시드니':'Sydney','멜버른':'Melbourne'};
 
 function json(data, status = 200) {
   return Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -364,8 +365,9 @@ async function weatherForecast(request,env,url){
   const rawLat=url.searchParams.get('lat'),rawLng=url.searchParams.get('lng');let lat=rawLat===null?NaN:Number(rawLat),lng=rawLng===null?NaN:Number(rawLng),label='';
   if(!Number.isFinite(lat)||!Number.isFinite(lng)){
     const city=clean(url.searchParams.get('city'),120);if(!city)return json({error:'날씨를 조회할 위치가 필요합니다.'},400);
-    const geoKey=new Request(`https://yeogiro-weather-cache.invalid/geocode/${encodeURIComponent(city.toLowerCase())}`),geoCache=caches.default,cachedGeo=await geoCache.match(geoKey);let place;
-    if(cachedGeo)place=await cachedGeo.json();else try{const response=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ko&format=json`);if(!response.ok)throw new Error('geo');const data=await response.json(),first=data.results?.[0];if(!first)throw new Error('geo');place={latitude:first.latitude,longitude:first.longitude,label:[first.name,first.admin1,first.country].filter(Boolean).join(' · ')};const result=json(place);result.headers.set('Cache-Control','public, max-age=604800');await geoCache.put(geoKey,result.clone())}catch{return json({error:'해당 지역의 위치를 확인하지 못했습니다.'},404)}
+    const query=CITY_ALIASES[city]||city,language=/[가-힣]/.test(query)?'ko':'en';
+    const geoKey=new Request(`https://yeogiro-weather-cache.invalid/geocode/${encodeURIComponent(query.toLowerCase())}`),geoCache=caches.default,cachedGeo=await geoCache.match(geoKey);let place;
+    if(cachedGeo)place=await cachedGeo.json();else try{const response=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=${language}&format=json`);if(!response.ok)throw new Error('geo');const data=await response.json(),first=data.results?.[0];if(!first)throw new Error('geo');place={latitude:first.latitude,longitude:first.longitude,label:[first.name,first.admin1,first.country].filter(Boolean).join(' · ')};const result=json(place);result.headers.set('Cache-Control','public, max-age=604800');await geoCache.put(geoKey,result.clone())}catch{return json({error:'해당 지역의 위치를 확인하지 못했습니다.'},404)}
     lat=Number(place.latitude);lng=Number(place.longitude);label=place.label||city
   }
   if(lat < -90||lat > 90||lng < -180||lng > 180)return json({error:'날씨 조회 좌표가 올바르지 않습니다.'},400);
