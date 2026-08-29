@@ -116,11 +116,12 @@ assert.match(source, /자동으로 저장하지 않습니다\./, 'AI가 찾은 �
 assert.match(source, /data-expense-candidate>경비에 추가/, '사용자가 직접 경비 추가를 선택');
 assert.match(source, /expenseCandidate=x\?\.payment\?\.amount&&x\?\.payment\?\.currency/, '결제 금액과 통화가 모두 있을 때만 후보 생성');
 
-assert.match(worker, /const CITY_ALIASES=\{'서울':'Seoul'/, '한국어 도시명을 좌표 조회 가능한 이름으로 변환');
+assert.match(worker, /const CITY_ALIASES=\{'서울':'Seoul\|KR'/, '한국어 도시명을 국가까지 지정해 좌표로 변환');
+assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 막기 위해 국가 코드로 조회 범위를 제한');
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
 assert.match(serviceWorker, /'\/expense-logic\.js\?v=53'/, '경비 로직을 오프라인 캐시에 포함');
 assert.match(serviceWorker, /'\/weather-logic\.js\?v=53'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('87 expense and weather integration checks passed');
+console.log('88 expense and weather integration checks passed');

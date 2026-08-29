@@ -257,6 +257,8 @@ try {
   assert.equal(koreanCity.response.status, 200, '한국어 도시명으로도 날씨 조회');
   assert.ok(Array.isArray(koreanCity.data.daily.time) && koreanCity.data.daily.time.length > 0, '날짜별 예보 배열 제공');
   assert.ok(koreanCity.data.timezone && koreanCity.data.fetchedAt, '현지 시간대와 기준 시각 제공');
+  const homeCity = await api('/api/weather?city=' + encodeURIComponent('제주'));
+  assert.equal(homeCity.data.timezone, 'Asia/Seoul', '동명 해외 도시가 아니라 실제 여행지 좌표를 사용');
 
   const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false } });
   await api(`/api/trips/${id}/invites/${revokedInvite.data.id}`, { method: 'DELETE', token: owner });
@@ -291,7 +293,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('67 API integration checks passed');
+  console.log('68 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
