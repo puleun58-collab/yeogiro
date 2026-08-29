@@ -47,7 +47,7 @@
     return best;
   }
   function searchTrip(trip, query) {
-    const groups = { '일정': [], '항공편': [], '숙소': [], '예약서류': [] }, q = normalize(query);
+    const groups = { '일정': [], '항공편': [], '숙소': [], '경비': [], '예약서류': [] }, q = normalize(query);
     if (!q || !trip) return groups;
     const push = (group, result, fields) => { const score = searchScore(q, fields); if (score) groups[group].push({ ...result, score }); };
     for (const item of trip.items || []) push('일정', { type:'item', id:item.id, title:item.name, sub:`${item.day || ''} · ${item.time || ''}${item.place ? ` · ${item.place}` : ''}` }, [
@@ -58,6 +58,9 @@
     ]);
     for (const lodging of trip.lodgings || []) push('숙소', { type:'lodging', id:lodging.id, title:lodging.name, sub:`${lodging.checkInDate || ''} 체크인${lodging.address ? ` · ${lodging.address}` : ''}` }, [
       { value:lodging.reservationNumber, weight:45 }, { value:lodging.name, weight:35 }, { value:lodging.address, weight:27 }, { value:lodging.memo, weight:5 }
+    ]);
+    for (const expense of trip.expenses || []) push('경비', { type:'expense', id:expense.id, title:expense.title || expense.category || '경비', sub:`${expense.spentAt || ''} · ${expense.category || '기타'} · ${expense.currency || ''}` }, [
+      { value:expense.title, weight:35 }, { value:expense.category, weight:25 }, { value:expense.memo, weight:4 }
     ]);
     const seen = new Set(), addDocument = (doc, owner, relation) => {
       if (!doc?.id || seen.has(doc.id) || doc.id === trip.heroFileId) return; seen.add(doc.id);
@@ -137,14 +140,14 @@
   }
   function backupSummary(state) {
     const trips = state?.trips || [], docs = new Set(), files = new Set();
-    let items = 0, flights = 0, lodgings = 0;
+    let items = 0, flights = 0, lodgings = 0, expenses = 0;
     for (const trip of trips) {
-      items += (trip.items || []).length; flights += (trip.flights || []).length; lodgings += (trip.lodgings || []).length;
+      items += (trip.items || []).length; flights += (trip.flights || []).length; lodgings += (trip.lodgings || []).length; expenses += (trip.expenses || []).length;
       for (const entity of [...(trip.items || []), ...(trip.flights || []), ...(trip.lodgings || [])]) for (const doc of entity.userDocs || []) { docs.add(doc.id); files.add(doc.id); }
       for (const file of trip.files || []) files.add(file.id);
       if (trip.heroFileId) files.add(trip.heroFileId);
     }
-    return { trips: trips.length, items, flights, lodgings, documents: docs.size, files: files.size };
+    return { trips: trips.length, items, flights, lodgings, expenses, documents: docs.size, files: files.size };
   }
   return { normalize, normalizeFlightNumber, flightNumberParts, normalizeAirport, isValidDate, isValidTime, similarity, searchScore, searchTrip, entityFromExtraction, flightEntitiesFromExtraction, findCandidates, validateEntity, diffFields, backupSummary };
 });

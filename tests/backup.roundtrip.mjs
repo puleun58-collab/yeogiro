@@ -85,6 +85,9 @@ const sourceState = {
   trips: [{
     id: tripId, title: '왕복 테스트 여행', start: '2026-08-23', end: '2026-08-24', note: '', cities: ['서울'],
     hero: '', heroFileId: heroMeta.id, files: [documentMeta, heroMeta], flights: [], lodgings: [],
+    expenses: [{ id: 'expense_source', title: '함께 먹은 저녁', category: '식비', amountMinor: 30000, currency: 'KRW', baseCurrency: 'KRW', rateMicros: 1000000, convertedMinor: 30000, rateUpdatedAt: '', rateSource: 'same-currency', paidByMemberId: 'mem_old_owner', shareMemberIds: ['mem_old_owner', 'mem_old_guest'], spentAt: '2026-08-23', memo: '', linkedType: 'item', linkedId: itemId }],
+    expenseMembers: [{ id: 'mem_old_owner', name: '이전 소유자', role: 'owner', revokedAt: '' }],
+    expenseSettings: { baseCurrency: 'KRW', budgetMinor: 500000, settledAt: '2026-08-24T00:00:00.000Z', settlementFingerprint: 'old' },
     items: [{ id: itemId, day: '2026-08-23', time: '10:00', endTime: '', preparationMinutes: 0, cat: '기타', name: '예약 일정', place: '', mapUrl: '', memo: '', move: '', alarm: '', reservationNumber: '', provider: '', lat: null, lng: null, userDocs: [documentMeta] }]
   }]
 };
@@ -114,6 +117,18 @@ assert.notEqual(matchingTrips[0].id, matchingTrips[1].id, 'new-trip import remap
 assert.notEqual(matchingTrips[0].items[0].userDocs[0].id, matchingTrips[1].items[0].userDocs[0].id, 'new-trip import remaps document ids');
 assert.equal(await (await store.fileBlob(matchingTrips[1].items[0].userDocs[0].id)).text(), 'reservation-original', 'remapped document original remains readable');
 
+const remappedExpenseTrip = matchingTrips.find(trip => trip.id !== restoredTrip.id);
+const remappedExpense = remappedExpenseTrip.expenses[0];
+assert.notEqual(remappedExpense.id, 'expense_source', 'new-trip import remaps expense ids');
+assert.equal(remappedExpense.paidByMemberId, 'local:self', 'remapped expense payer falls back to this device participant');
+assert.deepEqual(remappedExpense.shareMemberIds, ['local:self'], 'remapped expense shares fall back to this device participant');
+assert.equal(remappedExpense.linkedId, remappedExpenseTrip.items[0].id, 'remapped expense keeps its schedule link');
+assert.equal(remappedExpense.amountMinor, 30000, 'remapped expense keeps the original amount');
+assert.deepEqual(remappedExpenseTrip.expenseMembers, [], 'remapped trip drops stale server participants');
+assert.equal(remappedExpenseTrip.expenseSettings.settledAt, '', 'remapped trip clears the previous settlement state');
+assert.equal(remappedExpenseTrip.expenseSettings.budgetMinor, 500000, 'remapped trip keeps the trip budget');
+assert.equal(restoredTrip.expenses[0].paidByMemberId, 'mem_old_owner', 'overwrite restore keeps the original payer');
+
 const remappedDoc = matchingTrips[1].items[0].userDocs[0];
 remappedDoc.size = 999;
 let audit = await store.auditFiles(matchingTrips[1]);
@@ -132,4 +147,4 @@ const beforeInvalid = structuredClone(importedAsNew);
 assert.throws(() => store.previewBackup({ format: 'yeogiro-backup-v2', state: { trips: [] } }, importedAsNew), /여행 데이터/);
 assert.deepEqual(importedAsNew, beforeInvalid, 'invalid restore preview does not mutate current data');
 
-console.log('20 backup round-trip checks passed');
+console.log('30 backup round-trip checks passed');

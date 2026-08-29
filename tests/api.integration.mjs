@@ -224,6 +224,36 @@ try {
   assert.equal(documentRestored.response.status, 200, '예약 서류 메타데이터 복원');
   assert.ok(documentRestored.data.trip.files.some(file => file.id === documentId), '복원한 예약 서류가 기존 일정에 다시 연결');
 
+  const expenseDraft = structuredClone(documentRestored.data.trip), expenseId = `${id}_expense`;
+  expenseDraft.expenseSettings = { baseCurrency: 'KRW', budgetMinor: 150000, settledAt: '', settlementFingerprint: '' };
+  expenseDraft.expenses.push({ id: expenseId, title: '함께 먹은 식사', category: '식비', amountMinor: 30000, currency: 'KRW', baseCurrency: 'KRW', rateMicros: 1000000, convertedMinor: 30000, rateUpdatedAt: '2026-08-22T10:00:00.000Z', rateSource: 'same-currency', paidByMemberId: ownerMember.id, shareMemberIds: [ownerMember.id, editorMember.id], spentAt: '2026-08-22', memo: '', linkedType: 'item', linkedId: `${id}_item` });
+  const expenseAdded = await api(`/api/trips/${id}`, { method: 'PUT', token: editor, body: { trip: expenseDraft, baseRevision: documentRestored.data.trip.revision } });
+
+  assert.equal(expenseAdded.response.status, 200, 'editor 경비 추가 가능');
+  assert.equal(expenseAdded.data.trip.expenses[0].convertedMinor, 30000, '원금과 저장 환율 기준 환산액 유지');
+  assert.deepEqual(new Set(expenseAdded.data.trip.expenses[0].shareMemberIds), new Set([ownerMember.id, editorMember.id]), '선택한 분담자 저장');
+  const viewerExpenseEdit = structuredClone(expenseAdded.data.trip); viewerExpenseEdit.expenses[0].title = '차단 대상';
+  assert.equal((await api(`/api/trips/${id}`, { method: 'PUT', token: viewer, body: { trip: viewerExpenseEdit, baseRevision: expenseAdded.data.trip.revision } })).response.status, 403, 'viewer 경비 수정 차단');
+  const withoutExpense = structuredClone(expenseAdded.data.trip); withoutExpense.expenses = [];
+  const expenseDeleted = await api(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: withoutExpense, baseRevision: expenseAdded.data.trip.revision } });
+  assert.equal(expenseDeleted.response.status, 200, 'owner 경비 삭제 가능');
+  const expenseTrash = await api(`/api/trips/${id}/trash`, { token: owner });
+  const trashedExpense = expenseTrash.data.trash.find(entry => entry.entity_id === expenseId);
+  assert.ok(trashedExpense && trashedExpense.entity_type === 'expense', '삭제 경비를 휴지통에 보관');
+  const expenseRestored = await api(`/api/trips/${id}/trash/${trashedExpense.id}/restore`, { method: 'POST', token: editor, body: {} });
+  assert.equal(expenseRestored.response.status, 200, '경비 복원 가능');
+  assert.equal(expenseRestored.data.trip.expenses[0].title, '함께 먹은 식사', '경비 원본 정보 복원');
+  assert.equal((await api('/api/weather')).response.status, 400, '날씨 API 위치 누락 차단');
+  const sameRate = await api('/api/exchange-rate?from=KRW&to=KRW');
+  assert.equal(sameRate.data.rateMicros, 1000000, '같은 통화는 환율 1로 응답');
+  const ecbRate = await api('/api/exchange-rate?from=JPY&to=KRW');
+  assert.equal(ecbRate.response.status, 200, 'ECB 지원 통화쌍 환율 조회');
+  assert.ok(ecbRate.data.rateMicros > 0, 'ECB 환율은 양수 마이크로 단위');
+  const fallbackRate = await api('/api/exchange-rate?from=VND&to=KRW');
+  assert.equal(fallbackRate.response.status, 200, 'ECB 미지원 통화도 대체 소스로 조회');
+  assert.ok(fallbackRate.data.rateMicros > 0, 'VND 환율도 마이크로 단위로 제공');
+  assert.equal((await api('/api/exchange-rate?from=XXX&to=KRW')).response.status, 400, '지원하지 않는 통화 차단');
+
   const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false } });
   await api(`/api/trips/${id}/invites/${revokedInvite.data.id}`, { method: 'DELETE', token: owner });
   const revoked = await api('/api/invites/redeem', { method: 'POST', body: { token: revokedInvite.data.token } });
@@ -257,7 +287,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('47 API integration checks passed');
+  console.log('64 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;

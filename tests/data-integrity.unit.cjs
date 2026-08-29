@@ -15,6 +15,7 @@ const trip = {
   flights: [{ id: 'f1', flightNumber: 'TW125', airline: "T'way Air", departDate: '2026-08-22', depart: '07:45', from: 'ICN', fromCity: '인천', to: 'DAD', toCity: '다낭', reservationNumber: 'FL-ABC-7788', userDocs: [{ id:'d1', name:'다낭 항공권.pdf' }] }],
   lodgings: [{ id: 'l1', name: 'Grand Signature Hoi An', checkInDate: '2026-08-22', checkOutDate: '2026-08-24', address:'Hoi An', reservationNumber:'HT-9090', memo:'호이안 야경', userDocs:[] }],
   items: [{ id: 'i1', day: '2026-08-23', time: '10:00', name: '바나힐 투어', place: '바나힐', memo:'케이블카 탑승', reservationNumber:'TOUR-123', userDocs:[] }],
+  expenses: [{ id: 'e1', title: '바나힐 입장권', category: '관광', currency: 'VND', spentAt: '2026-08-23', memo: '현장 결제' }],
   files: []
 };
 assert.equal(data.findCandidates(trip, 'flight', { flightNumber: 'tw 125', departDate: '2026-08-22', from: 'icn', to: 'dad' })[0].id, 'f1');
@@ -32,7 +33,9 @@ assert.equal(data.searchTrip(trip, 'grand signature').숙소[0].id, 'l1', '숙�
 assert.equal(data.searchTrip(trip, 'HT9090').숙소[0].id, 'l1', '특수문자를 무시한 예약번호 검색');
 assert.equal(data.searchTrip(trip, '다낭항공권').예약서류[0].id, 'd1', '예약서류 파일명 검색');
 assert.equal(data.searchTrip(trip, '호이안 야경').숙소[0].id, 'l1', '메모 검색');
+assert.equal(data.searchTrip(trip, '바나힐 입장권').경비[0].id, 'e1', '경비 항목명 검색');
+assert.equal(data.searchTrip(trip, '현장 결제').경비[0].id, 'e1', '경비 메모 검색');
 assert.equal(Object.values(data.searchTrip(trip, '없는검색어')).flat().length, 0, '검색 결과 없음');
 assert.equal(data.searchTrip(trip, 'TW125').항공편[0].score > data.searchTrip(trip, '다낭').항공편[0].score, true, '편명 완전 일치를 도시 검색보다 우선');
-assert.deepEqual(data.backupSummary({ trips: [{ items: [{ userDocs: [{ id: 'd1' }] }], flights: [{}], lodgings: [], files: [] }] }), { trips: 1, items: 1, flights: 1, lodgings: 0, documents: 1, files: 1 });
-console.log('26 data integrity checks passed');
+assert.deepEqual(data.backupSummary({ trips: [{ items: [{ userDocs: [{ id: 'd1' }] }], flights: [{}], lodgings: [], expenses: [{}], files: [] }] }), { trips: 1, items: 1, flights: 1, lodgings: 0, expenses: 1, documents: 1, files: 1 });
+console.log('28 data integrity checks passed');
