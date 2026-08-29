@@ -61,4 +61,56 @@ assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-23'), 'during');
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-25'), 'after');
 
-console.log('24 travel logic checks passed');
+const routeStops = [
+  { id: 'hotel', type: 'lodging', lat: 16, lng: 108 },
+  { id: 'market', type: 'item', lat: 16.02, lng: 108.02 },
+  { id: 'beach', type: 'item', lat: 16.04, lng: 108.04 }
+];
+const routeLegs = [
+  { durationMinutes: 20, distanceKm: 8 },
+  { durationMinutes: 15, distanceKm: 5 }
+];
+assert.deepEqual(travel.routeSummary(routeStops, routeLegs), {
+  places: 2,
+  durationMinutes: 35,
+  distanceKm: 13,
+  complete: true
+}, 'route totals count itinerary places but include lodging legs');
+assert.equal(travel.routeSummary(routeStops, [routeLegs[0]]).durationMinutes, null, 'partial route data does not invent a total');
+
+const inefficient = [
+  { id: 'a', type: 'item', lat: 0, lng: 0 },
+  { id: 'b', type: 'item', lat: 0, lng: 2 },
+  { id: 'c', type: 'item', lat: 0, lng: 1 },
+  { id: 'd', type: 'item', lat: 0, lng: 3 }
+];
+const suggestion = travel.routeSuggestion(inefficient);
+assert.deepEqual(suggestion.order, ['a', 'c', 'b', 'd'], 'an adjacent swap can reduce obvious backtracking');
+assert.ok(suggestion.savedKm > 100, 'suggestion reports real distance reduction');
+assert.equal(travel.routeSuggestion([{ id: 'hotel', type: 'lodging', lat: 0, lng: -1 }, ...inefficient]).order[0], 'hotel', 'lodging remains a fixed route anchor while scoring');
+assert.equal(travel.routeSuggestion(inefficient.map((item, index) => ({ ...item, fixed: index === 1 || index === 2 }))), null, 'fixed stops are protected from suggestions');
+assert.equal(travel.routeSuggestion(inefficient.slice(0, 2)), null, 'two stops do not produce a reorder suggestion');
+
+assert.equal(travel.routeWarning(
+  { time: '10:00', endTime: '11:50' },
+  { time: '12:00', move: '도보' },
+  { durationMinutes: 25 }
+).level, 'conflict', 'time conflicts outrank other route warnings');
+assert.equal(travel.routeWarning(
+  { time: '10:00', endTime: '10:30' },
+  { time: '12:00', move: '도보' },
+  { durationMinutes: null }
+).level, 'route', 'unavailable routes are explicit');
+assert.equal(travel.routeWarning(
+  { time: '10:00', endTime: '10:30' },
+  { time: '12:00', move: '도보' },
+  { durationMinutes: 20 },
+  { precipitationProbability: 80 }
+).level, 'weather', 'rain advice follows time and route warnings');
+assert.equal(travel.routeWarning(
+  { time: '10:00' },
+  { time: '12:00', move: '자동차' },
+  { durationMinutes: 20 }
+).level, 'reference', 'missing end time is a reference note rather than a strong warning');
+
+console.log('35 travel logic checks passed');

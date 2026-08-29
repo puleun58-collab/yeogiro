@@ -118,6 +118,63 @@
     return { level, slackMinutes, departureMinutes, expectedEnd, preparationMinutes, reliable };
   }
 
+  function routeSummary(stops, legs) {
+    const valid = (legs || []).filter(leg => Number.isFinite(leg?.durationMinutes));
+    const expected = Math.max(0, (stops || []).length - 1);
+    const complete = valid.length === expected;
+    const distance = complete && valid.every(leg => Number.isFinite(leg.distanceKm))
+      ? valid.reduce((sum, leg) => sum + leg.distanceKm, 0)
+      : null;
+    return {
+      places: (stops || []).filter(stop => stop.type === 'item').length,
+      durationMinutes: complete
+        ? valid.reduce((sum, leg) => sum + leg.durationMinutes, 0)
+        : null,
+      distanceKm: distance,
+      complete
+    };
+  }
+
+  function routeDistance(stops) {
+    let total = 0;
+    for (let index = 0; index < stops.length - 1; index++) {
+      const distance = geoDistance(stops[index], stops[index + 1]);
+      if (distance === null) return null;
+      total += distance;
+    }
+    return total;
+  }
+
+  function routeSuggestion(items) {
+    const source = [...(items || [])];
+    if (source.length < 3 || source.some(item => geoDistance(item, item) === null)) return null;
+    const currentKm = routeDistance(source);
+    if (currentKm === null) return null;
+    let best = null;
+    for (let index = 0; index < source.length - 1; index++) {
+      if (source[index].type !== 'item' || source[index + 1].type !== 'item' || source[index].fixed || source[index + 1].fixed || source[index].endTime || source[index + 1].endTime) continue;
+      const candidate = [...source];
+      [candidate[index], candidate[index + 1]] = [candidate[index + 1], candidate[index]];
+      const candidateKm = routeDistance(candidate);
+      const savedKm = currentKm - candidateKm;
+      if (savedKm > Math.max(1, currentKm * 0.08) && (!best || savedKm > best.savedKm)) {
+        best = { fromIndex: index, toIndex: index + 1, currentKm, candidateKm, savedKm, order: candidate.map(item => item.id) };
+      }
+    }
+    return best;
+  }
+
+  function routeWarning(from, to, leg, weather = null) {
+    const gap = assessGap(from, to, leg);
+    if (gap.level === 'conflict') return { level: 'conflict', text: `이동시간이 약 ${Math.abs(gap.slackMinutes)}분 부족합니다.` };
+    if (!Number.isFinite(leg?.durationMinutes)) return { level: 'route', text: '경로를 계산할 수 없습니다.' };
+    if (weather?.precipitationProbability >= 60 && moveProfile(to?.move).key === 'walking') {
+      return { level: 'weather', text: `도보 이동 중 비 가능성 ${Math.round(weather.precipitationProbability)}% · 차량 이동도 확인해 보세요.` };
+    }
+    if (!gap.reliable) return { level: 'reference', text: '종료시간이 없어 이동시간만 참고해 주세요.' };
+    return null;
+  }
+
   function tripPhase(trip, today) {
     if (today < trip.start) return 'before';
     if (today > trip.end) return 'after';
@@ -138,5 +195,5 @@
       : { text: '', label: '' };
   }
 
-  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, tripPhase, flightDayDelta, terminalInfo };
+  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, routeSummary, routeSuggestion, routeWarning, tripPhase, flightDayDelta, terminalInfo };
 });
