@@ -22,7 +22,7 @@ assert.match(source, /events\]\.sort\(\(a,b\)=>\(a\.time/, '같은 날 출발·�
 assert.match(source, /id="includeLodgingReturn"/, '숙소 복귀는 선택 옵션');
 assert.match(source, /includeLodgingReturn&&lodging/, '복귀 선택 때만 마지막 숙소 추가');
 
-assert.match(source, /<div class="pin-dot">\$\{i\.type==='lodging'\?'⌂':i\.type==='airport'\?'✈':n\+1\}/, '일정 번호와 숙소·공항 표식 구분');
+assert.match(source, /<div class="pin-dot"><span>\$\{i\.type==='lodging'\?'⌂':i\.type==='airport'\?'✈':n\+1\}<\/span>/, '일정 번호와 숙소·공항 표식 구분');
 assert.match(source, /fitMap\(list\)/, '하루 전체 위치를 기준으로 지도 범위 조정');
 assert.match(source, /class="pin[^`]*active/, '선택한 마커 강조');
 assert.match(source, /data-pin="\$\{i\.id\}"/, '마커와 정류장 ID 연결');
@@ -95,7 +95,10 @@ assert.match(source, /\/api\/map-tile\/\$\{z\}\/\$\{x\}\/\$\{y\}\.png\?v=3/, '�
 assert.match(source, /leg\.reference\?'직선거리 기준 '/, '경로 실패 시 참고값임을 명확히 표시');
 assert.match(source, /route-number\{display:inline-grid[\s\S]{0,100}width:22px;height:22px/, '일정 번호 원을 텍스트 크기에 맞게 축소');
 assert.match(source, /석굴로238[\s\S]{0,100}\[35\.7948033,129\.3491954\][\s\S]{0,100}숲머리길159[\s\S]{0,100}\[35\.8430039,129\.2530179\]/, '석굴암과 토함의 잘못 저장된 좌표를 실제 위치로 복구');
-assert.match(source, /\.pin\{position:absolute;width:auto;height:auto;padding:0;border:0;background:transparent;-webkit-appearance:none/, 'iOS 기본 버튼 배경이 지도 핀 주변을 가리지 않음');
+assert.match(source, /\.pin\{position:absolute;display:block;width:auto;height:auto;margin:0;padding:0;border:0;border-radius:0;gap:0;background:transparent/, '일정 카드 스타일과 iOS 기본 버튼 배경이 지도 핀에 적용되지 않음');
+assert.match(source, /class="pin pin-\$\{i\.type\|\|'item'\}/, '지도 핀 종류 클래스를 카드 클래스와 분리');
+assert.match(source, /\.pin-lodging \.pin-dot,\.pin-airport \.pin-dot\{background:var\(--orange\)\}/, '숙소·공항 마커 색상 유지');
+assert.match(source, /\.pin\.active \.pin-dot\{transform:rotate\(-45deg\) scale\(1\.14\)/, '선택 마커는 물방울 형태를 유지한 채 강조');
 assert.match(source, /route-summary>span\{display:grid[\s\S]{0,100}gap:5px/, '장소 수와 경로 상태 문구 사이 간격 확보');
 assert.match(source, /#map\{height:34vh;min-height:280px;max-height:350px\}/, '모바일 지도 높이를 축소해 일정 정보를 먼저 노출');
 assert.match(source, /\.map-frame\.expanded #map\{height:72vh/, '필요할 때만 지도를 크게 확장');
@@ -115,7 +118,14 @@ assert.match(source, /stroke-width="1\.8" stroke-linecap="round"/, '게임풍 �
 assert.doesNotMatch(source, /fill="#f2b48c"/, '기존 게임 캐릭터 그래픽 제거');
 assert.match(source, /\.routeSvg path\.selected-leg\{opacity:1/, '선택 구간만 강조하고 나머지 경로는 약하게 표시');
 assert.match(source, /route-estimate-badge">예상 이동 경로</, '실제 위치가 아니라 예상 이동 경로임을 명시');
-assert.match(source, /\.character\{width:32px;height:32px/, '현재 위치 아이콘을 일정 마커보다 작게 표시');
+assert.match(source, /\.pin-label\{max-width:min\(48vw,190px\);overflow:hidden;text-overflow:ellipsis/, '긴 장소명은 마커 라벨 안에서 말줄임 처리');
+assert.match(source, /\.pin-dot\{position:relative[\s\S]{0,220}border-radius:50% 50% 50% 2px[\s\S]{0,140}rotate\(-45deg\)/, '일정 마커를 물방울형 배지로 정리');
+assert.match(source, /\.pin-dot span\{display:block;transform:rotate\(45deg\)\}/, '회전한 마커 안에서도 번호는 똑바로 표시');
+assert.match(source, /\.pin\.active \.pin-dot::after,\.pin\.attention \.pin-dot::after/, '선택 강조 원을 라벨이 아닌 마커 중심에 고정');
+assert.match(source, /\.character\{[^}]*opacity:0[^}]*\}\.character\.moving\{opacity:1\}/, '이동 아이콘은 구간 이동 중에만 노출');
+assert.match(source, /character\.classList\.add\('moving'\)/, '구간 애니메이션 시작에서 이동 아이콘 표시');
+assert.match(source, /routeMotionFrame=0;\$\('#character'\)\?\.classList\.remove\('moving'\)/, '애니메이션 정리 시 이동 아이콘 숨김');
+assert.match(source, /\.character\{width:30px;height:30px;border-width:2px;z-index:6/, '이동 아이콘을 일정 마커보다 작고 뒤쪽 층에 표시');
 assert.match(source, /directional=\['car','bus','bicycle'\]\.includes\(transportType\(move\)\)/, '방향성 있는 이동수단만 경로 방향으로 회전');
 assert.match(source, /timedTarget=next&&\(next\.type==='item'\|\|next\.id\.startsWith\('airport-depart-'\)\)/, '숙소 정렬용 임시 시간으로 출발 권장을 만들지 않음');
 assert.match(source, /if\(map\.tileHtml!==html\)\{map\.tileHtml=html;tiles\.innerHTML=html\}/, '같은 타일 구성은 재사용해 선택 시 지도 깜빡임 방지');
@@ -138,4 +148,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('122 route optimization integration checks passed');
+console.log('132 route optimization integration checks passed');
