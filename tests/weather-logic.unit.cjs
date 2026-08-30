@@ -34,7 +34,8 @@ let advice = weather.dailyAdvice({ precipitationProbabilityMax: 70, apparentTemp
   { time: '2026-08-20T14:00', precipitationProbability: 80 }
 ]);
 assert.deepEqual(advice.map(value => value.type), ['precipitation', 'heat'], 'precipitation and heat take priority over wind');
-assert.match(advice[0].text, /14:00/, 'uses an hourly time only when hourly precipitation supports it');
+assert.match(advice[0].text, /14시 전후/, 'uses a readable hour label only when hourly precipitation supports it');
+assert.doesNotMatch(advice[0].text, /\d{2}:\d{2}/, 'does not expose raw clock strings in advice');
 advice = weather.dailyAdvice({ precipitationSum: 2 }, []);
 assert.doesNotMatch(advice[0].text, /\d{2}:\d{2}/, 'does not invent a specific rain time without hourly evidence');
 
@@ -68,4 +69,4 @@ assert.equal(weather.needsRefresh({ fetchedAt: '2026-08-21T00:00:00Z', daily: [{
 assert.equal(weather.needsRefresh(null, { today: '2026-08-21' }), true, 'a missing forecast always refetches');
 assert.equal(weather.needsRefresh(dayOld, { now: Date.parse('2026-08-20T00:10:00Z') }), false, 'without a reference day only the age matters');
 
-console.log('31 weather logic checks passed');
+console.log('33 weather logic checks passed');

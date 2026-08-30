@@ -57,7 +57,7 @@
     if((precipitationProbability??0)>0||(precipitationSum??0)>0){
       const wet=(hours||[]).find(hour=>(valueOf(hour,'precipitation','rain')??0)>0||(valueOf(hour,'precipitationProbability','precipitation_probability')??0)>=40||[51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99].includes(valueOf(hour,'weatherCode','weather_code')));
       const time=wet&&String(wet.time||wet.dateTime||'').match(/(\d{2}:\d{2})/);
-      advice.push({type:'precipitation',text:time?`${time[1]} 전후 비가 예상돼요. 우산을 챙기세요.`:'비가 예상돼요. 우산을 챙기세요.'});
+      advice.push({type:'precipitation',text:time?`${Number(time[1].slice(0,2))}시 전후 비가 예상돼요. 우산을 챙기세요.`:'비가 예상돼요. 우산을 챙기세요.'});
     }
     if((apparent??-Infinity)>=33)advice.push({type:'heat',text:`체감온도가 ${Math.round(apparent)}°C까지 올라갈 수 있어요. 더위를 피하세요.`});
     if((wind??-Infinity)>=35)advice.push({type:'wind',text:`바람이 ${Math.round(wind)}km/h까지 강해질 수 있어요. 야외 활동에 유의하세요.`});

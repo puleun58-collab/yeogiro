@@ -102,7 +102,8 @@ assert.match(source, /weather-location-switch[\s\S]{0,240}font-size:11px/, '지�
 assert.match(source, /<span>\${weatherLocationIndex\+1} \/ \${locations\.length}<\/span>지역 변경/, '지역 변경 목적과 현재 위치 순서를 분리해 표시');
 assert.match(source, /function weatherLocationSheet\(\)[\s\S]*data-weather-location-index[\s\S]*<h2>지역 선택<\/h2>/, '여러 지역을 순환하지 않고 목록에서 직접 선택');
 assert.match(source, /weatherLocationIndex=Math\.max\(0,Number\(b\.dataset\.weatherLocationIndex\)/, '선택한 지역의 전체 날씨를 같은 인덱스로 다시 렌더링');
-assert.match(source, /dailyAdvice\(day,hours\)\[0\]\?\.text/, '규칙형 날씨 안내 중 가장 중요한 한 건만 표시');
+assert.match(source, /dailyAdvice\(day,upcomingHours\)\[0\]\?\.text/, '규칙형 날씨 안내 중 가장 중요한 한 건만 표시');
+assert.match(source, /upcomingHours=selected===today\?hours\.filter\(x=>YeogiroTravel\.timeMinutes\(x\.time\?\.slice\(11,16\)\|\|'00:00'\)>=localNow\.minutes\)/, '오늘은 지나간 시간 대신 앞으로의 예보로 안내 시각을 계산');
 assert.match(source, /weather-action-advice/, '행동 가능한 날씨 안내를 상단과 시간대별 예보 사이에 표시');
 assert.match(source, /weather-cache-note[\s\S]*저장된 날씨 · 마지막 업데이트/, '오프라인·오래된 예보를 최신 날씨와 구분');
 assert.match(source, /details class=\"weather-hourly\"><summary><span>시간대별 예보<\/span>[\s\S]*weather-hourly-chevron/, '시간대별 예보 제목과 회전형 chevron 제공');
@@ -110,6 +111,8 @@ assert.match(source, /\.weather-hourly\[open\] \.weather-hourly-chevron\{transfo
 assert.match(source, /\.weather-hour\{[^}]*flex:0 0 76px;min-width:76px;padding:9px 7px/, '모바일에서 시간대별 카드 3.5개 이상 노출');
 assert.match(source, /\${esc\(x\.time\.slice\(11,13\)\)}시/, '시간대별 예보 시간을 00시 형식으로 간소화');
 assert.match(source, /weather-hour \${isCurrent\?'current':''}[\s\S]*<i>현재<\/i>/, '오늘과 가장 가까운 시간대 카드를 현재로 강조');
+assert.match(source, /weather-hour-head"><b>\$\{esc\(x\.time\.slice\(11,13\)\)\}시<\/b>\$\{isCurrent\?'<i>현재<\/i>':''\}/, '시간 텍스트와 현재 배지를 겹치지 않게 나란히 배치');
+assert.match(source, /\.weather-hour\.current \.weather-hour-head\{justify-content:space-between\}/, '현재 카드에서 시간과 배지를 양끝으로 분리');
 assert.match(source, /precipitation==null\?'':`<small class=\"weather-hour-rain\"/, '시간별 강수확률이 없으면 해당 줄을 숨김');
 assert.match(source, /날씨 정보를 불러오지 못했습니다\.<\/span><button class="addline" data-weather-retry>다시 시도/, '날씨 실패는 일정 화면과 분리해 재시도 제공');
 assert.match(source, /renderTravelGaps\(\);renderWeather\(\)\.catch\(\(\)=>\{\}\)/, '날씨 오류가 일정 렌더링을 막지 않음');
@@ -166,7 +169,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=67'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=67'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=68'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=68'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('133 expense and weather integration checks passed');
+console.log('136 expense and weather integration checks passed');

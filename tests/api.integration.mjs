@@ -237,6 +237,10 @@ try {
   assert.ok(activity.data.activities.some(entry => entry.details?.category === 'access' && entry.action === 'updated'), '공유 권한 변경을 기존 감사 로그 구조에 기록');
   assert.ok(activity.data.activities.some(entry => entry.details?.category === 'member' && entry.action === 'deleted'), '구성원 제외를 기존 감사 로그 구조에 기록');
   assert.ok(activity.data.activities.every(entry => !entry.snapshot_json), '활동 내역에 삭제 스냅샷 비노출');
+  const valuedLog = activity.data.activities.find(entry => Object.keys(entry.details?.values || {}).length > 0);
+  assert.ok(valuedLog, '수정 기록에 변경 전·후 값 저장');
+  assert.ok(Object.values(valuedLog.details.values).every(value => 'before' in value && 'after' in value), '변경 전과 변경 후 값을 함께 보관');
+  assert.ok(activity.data.activities.every(entry => !/^\d{4}-\d{2}-\d{2}/.test(entry.label || '')), '기록 제목에 ISO 날짜 문자열을 저장하지 않음');
   assert.equal((await api(`/api/trips/${id}/trash/${trash.data.trash[0].id}/restore`, { method: 'POST', token: viewer, body: {} })).response.status, 403, '보기 전용 휴지통 복원 차단');
   const restoredItem = await api(`/api/trips/${id}/trash/${trash.data.trash[0].id}/restore`, { method: 'POST', token: editor, body: {} });
   assert.equal(restoredItem.response.status, 200, '편집 가능한 구성원이 삭제 일정 복원');
@@ -342,7 +346,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('149 API integration checks passed');
+  console.log('152 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
