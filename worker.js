@@ -267,8 +267,8 @@ async function leaveTrip(env,tripId,member){
 }
 async function issueDeviceLink(request,env,tripId,member){
   let body={};try{body=await request.json()}catch{}
-  const lifetime=Math.min(900,Math.max(1,Number(body.expiresInSeconds)||900)),code=deviceLinkCode(),connectToken=randomToken(24),stamp=now(),expiresAt=new Date(Date.now()+lifetime*1000).toISOString();
-  await env.DB.batch([env.DB.prepare('UPDATE member_device_codes SET revoked_at=? WHERE member_id=? AND revoked_at IS NULL AND consumed_at IS NULL').bind(stamp,member.id),env.DB.prepare('INSERT INTO member_device_codes (id,member_id,code_hash,connect_token_hash,created_at,expires_at) VALUES (?,?,?,?,?,?)').bind(id('dlc'),member.id,await hash(normalizeRecoveryKey(code)),await hash(connectToken),stamp,expiresAt)]);
+  const lifetime=Math.min(900,Math.max(1,Number(body.expiresInSeconds)||900)),code=deviceLinkCode(),connectToken=randomToken(24),connectId=`dlc_${await hash(connectToken)}`,stamp=now(),expiresAt=new Date(Date.now()+lifetime*1000).toISOString();
+  await env.DB.batch([env.DB.prepare('UPDATE member_device_codes SET revoked_at=? WHERE member_id=? AND revoked_at IS NULL AND consumed_at IS NULL').bind(stamp,member.id),env.DB.prepare('INSERT INTO member_device_codes (id,member_id,code_hash,created_at,expires_at) VALUES (?,?,?,?,?)').bind(connectId,member.id,await hash(normalizeRecoveryKey(code)),stamp,expiresAt)]);
   await securityEvent(request,env,tripId,'device_link_code_issued');
   return json({code,expiresAt,connectUrl:`/?connect_token=${encodeURIComponent(connectToken)}`},201);
 }
@@ -277,7 +277,7 @@ async function redeemDeviceLink(request,env){
   const legacyTripId=clean(body.tripId,100),connectToken=clean(body.connectToken,100),code=normalizeRecoveryKey(body.code),stamp=now(),targetKey=connectToken?await hash(connectToken):legacyTripId||'unknown';
   if(await rateLimited(request,env,'device-link-ip',30,900)||await rateLimited(request,env,`device-link:${targetKey}`,8,900)){await securityEvent(request,env,legacyTripId,'device_link_rate_limited');return json({error:'연결 시도가 많습니다. 15분 뒤 다시 시도해 주세요.'},429)}
   let row=null;
-  if(code.length===16&&connectToken)row=await env.DB.prepare(`SELECT c.id,c.member_id,c.expires_at,c.consumed_at,c.revoked_at,m.trip_id,m.role,m.revoked_at AS member_revoked_at,t.deleted_at FROM member_device_codes c JOIN members m ON m.id=c.member_id JOIN trips t ON t.id=m.trip_id WHERE c.connect_token_hash=? AND c.code_hash=?`).bind(await hash(connectToken),await hash(code)).first();
+  if(code.length===16&&connectToken)row=await env.DB.prepare(`SELECT c.id,c.member_id,c.expires_at,c.consumed_at,c.revoked_at,m.trip_id,m.role,m.revoked_at AS member_revoked_at,t.deleted_at FROM member_device_codes c JOIN members m ON m.id=c.member_id JOIN trips t ON t.id=m.trip_id WHERE c.id=? AND c.code_hash=?`).bind(`dlc_${await hash(connectToken)}`,await hash(code)).first();
   else if(code.length===16&&legacyTripId)row=await env.DB.prepare(`SELECT c.id,c.member_id,c.expires_at,c.consumed_at,c.revoked_at,m.trip_id,m.role,m.revoked_at AS member_revoked_at,t.deleted_at FROM member_device_codes c JOIN members m ON m.id=c.member_id JOIN trips t ON t.id=m.trip_id WHERE c.code_hash=? AND m.trip_id=?`).bind(await hash(code),legacyTripId).first();
   const tripId=row?.trip_id||legacyTripId;
   if(!row||row.member_revoked_at||row.deleted_at||legacyTripId&&row.trip_id!==legacyTripId){await securityEvent(request,env,tripId,'device_link_failed');return json({error:'연결 코드를 확인해 주세요.'},401)}

@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 const source = readFileSync('index.html', 'utf8');
 const sync = readFileSync('sync.js', 'utf8');
 const worker = readFileSync('worker.js', 'utf8');
-const deviceTokenMigration = readFileSync('migrations/0012_device_connect_tokens.sql', 'utf8');
 
 assert.equal((source.match(/function shareSettings/g) || []).length, 1, '공유 관리 화면 구현은 하나만 존재');
 assert.equal((source.match(/function recoverSheet/g) || []).length, 1, '여행 복구 화면 구현은 하나만 존재');
@@ -30,10 +29,8 @@ assert.match(source, /function deviceCodeResult[\s\S]*15분 동안 한 번만[\s
 assert.match(source, /function deviceLinkComplete[\s\S]*이 기기에 연결되었습니다\.[\s\S]*기존 여행과 자동으로 동기화됩니다\.[\s\S]*여행 열기/, '연결 완료 화면은 내부 식별자 없이 간단히 제공');
 assert.match(sync, /params\.get\('connect_token'\)[\s\S]*deviceLinkToken/, '연결 링크 토큰을 시작 시 자동 인식');
 assert.match(sync, /JSON\.stringify\(\{tripId,connectToken,code,\.\.\.deviceInfo\(\)\}\)/, '링크 토큰과 코드로 새 기기 세션 요청');
-assert.match(worker, /connect_token_hash/, '연결 대상 임시 토큰은 해시로만 저장');
+assert.match(worker, /connectId=`dlc_\$\{await hash\(connectToken\)\}`/, '연결 대상 임시 토큰은 기존 코드 ID에 해시로만 저장');
 assert.match(worker, /connectUrl:`\/\?connect_token=\$\{encodeURIComponent\(connectToken\)\}`/, '연결 링크에 여행 ID나 접근 토큰 대신 임시 토큰만 포함');
-assert.match(deviceTokenMigration, /ADD COLUMN connect_token_hash TEXT/, '기존 기기 연결 코드에 임시 링크 토큰 해시 추가');
-assert.match(deviceTokenMigration, /UNIQUE INDEX member_device_codes_connect_token/, '연결 링크 임시 토큰 중복 차단');
 assert.match(source, /trip-access-stack[\s\S]*기존 여행 복구[\s\S]*data-open-device-link>새 기기에 연결/, '여행 목록에서 기존 여행 복구와 새 기기 연결 제공');
 assert.match(source, /id="recoveryForm"[\s\S]*소유권 복구키[\s\S]*class="save management-primary-action">이 기기에서 복구[\s\S]*id="deviceLinkForm"[\s\S]*class="save management-primary-action">이 기기에 연결/, '복구와 기기 연결 기본 버튼 규격 통일');
 assert.match(source, /<h2>공유 및 권한<\/h2>[\s\S]*<h3>참여자<\/h3>[\s\S]*<h3>새 초대<\/h3>[\s\S]*<h3>활성 초대 링크<\/h3>[\s\S]*<summary>관리<\/summary>/, '공유 및 권한 화면 정보 순서 유지');
@@ -109,4 +106,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('101 access management and extraction UI checks passed');
+console.log('99 access management and extraction UI checks passed');
