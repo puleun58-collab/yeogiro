@@ -60,6 +60,7 @@ assert.match(source, /assessGap\(list\[index-1\],stop,leg\)/, '기존 충돌 판
 assert.match(source, /출발 권장/, '다음 시작시간에서 이동·여유시간을 빼 출발 권장 표시');
 assert.match(source, /routeWarning/, '경고 우선순위를 순수 로직에서 결정');
 assert.match(source, /routeWeather\(stop\)/, '저장된 날씨를 구간 경고에 연결');
+assert.match(source, /needsRefresh\(forecast,\{now:Date\.now\(\),maxAgeMs:6\*3600\*1000/, '오래된 저장 날씨로 이동 경고를 만들지 않음');
 assert.match(source, /Intl\.DateTimeFormat\('en-CA',\{timeZone:forecast\.timezone/, '현재·다음 일정과 지금 위치를 여행지 현지 시간대로 계산');
 assert.match(source, /routeSuggestion\(list\)/, '숙소·공항을 포함한 전체 동선으로 개선 제안 계산');
 assert.match(source, /추천 순서 적용/, '사용자 확인으로만 추천 순서 적용');
@@ -137,4 +138,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('121 route optimization integration checks passed');
+console.log('122 route optimization integration checks passed');
