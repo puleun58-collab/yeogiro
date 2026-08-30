@@ -75,9 +75,11 @@ assert.match(source, /offline:!navigator\.onLine/, '오프라인 캐시 결과 �
 assert.match(source, /저장된 이동시간/, '오프라인 이동시간을 최신처럼 표시하지 않음');
 assert.match(source, /새 경로 계산은 인터넷 연결이 필요합니다\./, '오프라인 재계산 차단');
 assert.match(source, /id="routeRetry"/, '라우팅 장애 재시도 제공');
-assert.match(source, /durationMinutes:null,distanceKm:null,failed:true/, 'API 실패 시 추정값을 실제 경로처럼 표시하지 않음');
-assert.match(source, /src="\/api\/map-tile\/\$\{z\}\/\$\{x\}\/\$\{y\}\.png"/, '지도 타일을 Worker 프록시로 안정적으로 조회');
-assert.match(source, /data-direct="https:\/\/tile\.openstreetmap\.org/, '타일 프록시 실패 시 기존 OSM 직접 요청으로 대체');
+assert.match(source, /reference=\(\)=>\(\{\.\.\.fallback,failed:true/, '지원 경로 API 실패 시 직선거리 참고값을 명시적으로 구분');
+assert.match(source, /background-image:url\('\$\{proxy\}'\),url\('\$\{direct\}'\)/, '지도 타일은 깨진 이미지 대신 Worker와 OSM 이중 배경으로 렌더');
+assert.match(source, /\/api\/map-tile\/\$\{z\}\/\$\{x\}\/\$\{y\}\.png\?v=3/, '이전 손상 타일 캐시를 우회');
+assert.match(source, /leg\.reference\?'직선거리 기준 '/, '경로 실패 시 참고값임을 명확히 표시');
+assert.match(source, /route-number\{display:inline-grid[\s\S]{0,100}width:22px;height:22px/, '일정 번호 원을 텍스트 크기에 맞게 축소');
 assert.match(source, /route-summary>span\{display:grid[\s\S]{0,100}gap:5px/, '장소 수와 경로 상태 문구 사이 간격 확보');
 
 assert.match(source, /위치 없음 · \$\{missing\.length\}개/, '좌표 없는 일정도 동선 목록에서 유지');
@@ -97,4 +99,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('81 route optimization integration checks passed');
+console.log('83 route optimization integration checks passed');
