@@ -8,6 +8,7 @@ const worker = readFileSync('worker.js', 'utf8');
 assert.equal((source.match(/function shareSettings/g) || []).length, 1, '공유 관리 화면 구현은 하나만 존재');
 assert.equal((source.match(/function recoverSheet/g) || []).length, 1, '여행 복구 화면 구현은 하나만 존재');
 assert.equal((source.match(/function recoveryResult/g) || []).length, 1, '복구키 결과 화면 구현은 하나만 존재');
+assert.match(source, /<h2>복구키로 여행 불러오기<\/h2>[\s\S]*새 기기에서 여행 불러오기/, '기존 여행 복구를 사용자 행동 중심 문구로 변경');
 assert.doesNotMatch(source, /shareSettings\s*=\s*async|recoverSheet\s*=|recoveryResult\s*=/, '함수 재할당 오버라이드 제거');
 assert.match(source, /function roleName\(role\)\{return role==='owner'\?'소유자'/, 'owner를 소유자로 표시');
 assert.match(source, /function participantName[\s\S]*\['관리자','여행 관리자'\][\s\S]*\?'소유자'/, '기존 기본 표시명을 소유자 용어로 호환 표시');
@@ -31,8 +32,8 @@ assert.match(sync, /params\.get\('connect_token'\)[\s\S]*deviceLinkToken/, '연�
 assert.match(sync, /JSON\.stringify\(\{tripId,connectToken,code,\.\.\.deviceInfo\(\)\}\)/, '링크 토큰과 코드로 새 기기 세션 요청');
 assert.match(worker, /connectId=`dlc_\$\{await hash\(connectToken\)\}`/, '연결 대상 임시 토큰은 기존 코드 ID에 해시로만 저장');
 assert.match(worker, /connectUrl:`\/\?connect_token=\$\{encodeURIComponent\(connectToken\)\}`/, '연결 링크에 여행 ID나 접근 토큰 대신 임시 토큰만 포함');
-assert.match(source, /trip-access-stack[\s\S]*기존 여행 복구[\s\S]*data-open-device-link>새 기기에 연결/, '여행 목록에서 기존 여행 복구와 새 기기 연결 제공');
-assert.match(source, /id="recoveryForm"[\s\S]*소유권 복구키[\s\S]*class="save management-primary-action">이 기기에서 복구[\s\S]*id="deviceLinkForm"[\s\S]*class="save management-primary-action">이 기기에 연결/, '복구와 기기 연결 기본 버튼 규격 통일');
+assert.match(source, /trip-access-stack[\s\S]*복구키로 여행 불러오기[\s\S]*data-open-device-link>새 기기에 연결/, '여행 목록에서 복구키 여행 불러오기와 새 기기 연결 제공');
+assert.match(source, /id="recoveryForm"[\s\S]*소유권 복구키[\s\S]*class="save management-primary-action">여행 불러오기[\s\S]*id="deviceLinkForm"[\s\S]*class="save management-primary-action">이 기기에 연결/, '여행 불러오기와 기기 연결 기본 버튼 규격 통일');
 assert.match(source, /<h2>공유 및 권한<\/h2>[\s\S]*<h3>참여자<\/h3>[\s\S]*<h3>새 초대<\/h3>[\s\S]*<h3>활성 초대 링크<\/h3>[\s\S]*<summary>관리<\/summary>/, '공유 및 권한 화면 정보 순서 유지');
 assert.match(source, /id="inviteRole"[\s\S]*id="inviteUsage"[\s\S]*id="inviteExpiry"[\s\S]*value="1"[\s\S]*value="7" selected[\s\S]*value="30"/, '초대 권한·사용 방식·만료 선택과 7일 기본값 제공');
 assert.match(source, /function inviteResultSheet[\s\S]*data-copy-invite-link>링크 복사[\s\S]*data-share-invite-link>공유/, '초대 생성 후 복사와 시스템 공유 제공');
@@ -96,7 +97,7 @@ assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callo
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=66',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=67',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
@@ -106,4 +107,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('99 access management and extraction UI checks passed');
+console.log('100 access management and extraction UI checks passed');

@@ -110,6 +110,8 @@ assert.match(source, /label\.textContent=`\$\{index\+1\} · \$\{list\[index\]\.n
 assert.match(source, /closest\('\[data-pin\]'\)[\s\S]{0,240}moveJourneyTo\(index\)[\s\S]{0,90}focusRouteSelection\(index,true\)/, '마커 선택 시 해당 일정 카드로 연동');
 assert.match(source, /closest\('\[data-route-stop\]'\)[\s\S]{0,220}moveJourneyTo\(index\)/, '일정 카드 선택 시 지도 포커스 연동');
 assert.match(source, /last\?'마지막 일정':`\$\{journey\+1\}번째 일정`/, '개발자식 2\/2 대신 사용자 언어로 순서 표현');
+assert.match(source, /<small>일정 완료<\/small><b>오늘 일정 끝<\/b>/, '마지막 일정 완료 문구를 짧게 표시');
+assert.doesNotMatch(source, /오늘의 마지막 장소입니다\./, '좁은 다음 일정 박스에서 넘치는 문구 제거');
 assert.match(source, /\.journey>#journeyText\{display:block;margin-bottom:14px\}/, '일정 순서 제목과 현재·다음 박스 사이 간격 확보');
 assert.match(source, /data-route-leg="\$\{index-1\}"[\s\S]{0,260}\$\{distanceText\}/, '일정 리스트에서도 구간 이동시간과 거리 표시');
 assert.match(source, /journey-primary-actions[\s\S]{0,260}data-journey-dir[\s\S]{0,240}data-journey-detail/, '현재·다음 일정 중심의 길찾기와 상세보기 제공');
@@ -149,4 +151,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('133 route optimization integration checks passed');
+console.log('135 route optimization integration checks passed');

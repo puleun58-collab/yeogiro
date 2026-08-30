@@ -93,20 +93,32 @@ assert.match(source, /resolveDayLocations\(t,selected\)/, '선택한 날짜 기�
 assert.match(source, /이 날짜의 지역을 확인할 수 없습니다\./, '위치를 알 수 없으면 추측하지 않음');
 assert.match(source, /아직 날씨 예보 기간이 아닙니다\./, '예보 범위를 벗어난 날짜에 가짜 예보를 만들지 않음');
 assert.match(source, /날씨 정보를 보려면 인터넷 연결이 필요합니다\./, '캐시가 없는 오프라인 상태를 구분해 안내');
-assert.doesNotMatch(source, /기준 \${esc\(shortDate\(forecast\.fetchedAt,true\)\)}/, '날씨 아래 갱신 시각·습도·바람 보조 문구 제거');
-assert.doesNotMatch(source, /advice\.map\(x=>x\.text\)\.join/, '날씨 아래 일반 조언 문구 제거');
-assert.match(source, /\.weather-main\{[^}]*font-size:18px[\s\S]{0,120}\.weather-main b\{font-size:29px/, '오늘 날씨 핵심 수치를 크게 표시');
-assert.match(source, /weather-location-switch[\s\S]{0,240}font-size:12px/, '지역 전환 버튼은 작고 보조적인 크기로 표시');
-assert.match(source, /다른 지역 보기 <span>\$\{weatherLocationIndex\+1\}\/\$\{locations\.length\}<\/span>/, '지역 전환 문구를 자연스럽고 간결하게 표시');
-assert.match(source, /\.weather-hour\{min-width:86px[\s\S]{0,180}font-size:14px/, '시간대별 날씨 카드와 글자를 확대');
+assert.match(source, /weather-now[\s\S]*weather-now-icon[\s\S]*<strong>\${temperature}°<\/strong>[\s\S]*weather-condition/, '현재 기온과 날씨 상태를 최상위로 표시');
+assert.match(source, /weather-facts[\s\S]*최고 <b>\${high}°<\/b>[\s\S]*최저 <b>\${low}°<\/b>/, '최고·최저 기온을 의미가 드러나는 보조 정보로 표시');
+assert.match(source, /weather-rain[\s\S]*강수확률 <b>\${rain}%<\/b>/, '강수확률 숫자에 의미 라벨을 함께 표시');
+assert.match(source, /rain==null\?'':`<span class=\"weather-rain\"/, '강수확률 데이터가 없으면 행을 숨김');
+assert.match(source, /weatherLocationName\(location,t=trip\(\)\)[\s\S]*cities\.find[\s\S]*cityFor/, '일정 위치와 여행 도시를 사용해 실제 지역명을 표시');
+assert.match(source, /weather-location-switch[\s\S]{0,240}font-size:11px/, '지역 변경 버튼을 작은 보조 동작으로 표시');
+assert.match(source, /<span>\${weatherLocationIndex\+1} \/ \${locations\.length}<\/span>지역 변경/, '지역 변경 목적과 현재 위치 순서를 분리해 표시');
+assert.match(source, /function weatherLocationSheet\(\)[\s\S]*data-weather-location-index[\s\S]*<h2>지역 선택<\/h2>/, '여러 지역을 순환하지 않고 목록에서 직접 선택');
+assert.match(source, /weatherLocationIndex=Math\.max\(0,Number\(b\.dataset\.weatherLocationIndex\)/, '선택한 지역의 전체 날씨를 같은 인덱스로 다시 렌더링');
+assert.match(source, /dailyAdvice\(day,hours\)\[0\]\?\.text/, '규칙형 날씨 안내 중 가장 중요한 한 건만 표시');
+assert.match(source, /weather-action-advice/, '행동 가능한 날씨 안내를 상단과 시간대별 예보 사이에 표시');
+assert.match(source, /weather-cache-note[\s\S]*저장된 날씨 · 마지막 업데이트/, '오프라인·오래된 예보를 최신 날씨와 구분');
+assert.match(source, /details class=\"weather-hourly\"><summary><span>시간대별 예보<\/span>[\s\S]*weather-hourly-chevron/, '시간대별 예보 제목과 회전형 chevron 제공');
+assert.match(source, /\.weather-hourly\[open\] \.weather-hourly-chevron\{transform:rotate\(180deg\)\}/, '시간대별 예보 펼침 상태를 chevron 회전으로 표시');
+assert.match(source, /\.weather-hour\{[^}]*flex:0 0 76px;min-width:76px;padding:9px 7px/, '모바일에서 시간대별 카드 3.5개 이상 노출');
+assert.match(source, /\${esc\(x\.time\.slice\(11,13\)\)}시/, '시간대별 예보 시간을 00시 형식으로 간소화');
+assert.match(source, /weather-hour \${isCurrent\?'current':''}[\s\S]*<i>현재<\/i>/, '오늘과 가장 가까운 시간대 카드를 현재로 강조');
+assert.match(source, /precipitation==null\?'':`<small class=\"weather-hour-rain\"/, '시간별 강수확률이 없으면 해당 줄을 숨김');
 assert.match(source, /날씨 정보를 불러오지 못했습니다\.<\/span><button class="addline" data-weather-retry>다시 시도/, '날씨 실패는 일정 화면과 분리해 재시도 제공');
 assert.match(source, /renderTravelGaps\(\);renderWeather\(\)\.catch\(\(\)=>\{\}\)/, '날씨 오류가 일정 렌더링을 막지 않음');
 assert.match(source, /<h2>지금 확인할 일정<\/h2>/, '당일 카드 제목을 자연스러운 행동 중심 문구로 표시');
 assert.match(source, /today-countdown[\s\S]*<small>다음 일정까지<\/small><strong>\${YeogiroTravel\.formatDuration\(remaining\)}<\/strong>/, '다음 일정까지 남은 시간을 두 번째 줄에 강조');
-assert.match(source, /details class="weather-hourly"><summary>시간대별 보기/, '시간대별 예보는 접은 상태로 제공');
+assert.match(source, /details class="weather-hourly"/, '시간대별 예보는 접은 상태로 제공');
 assert.match(source, /nearestHourly\(hours,item\.time\)/, '일정 시간과 가장 가까운 예보를 연결');
 assert.match(source, /weather-item-note">☂ 비 가능성/, '야외 일정에만 보조 강수 정보를 표시');
-assert.match(source, /\$\{code\.icon\} \$\{esc\(code\.label\)\}/, '날씨를 아이콘과 글자로 함께 전달');
+assert.match(source, /role="img" aria-label="\${esc\(currentCode\.label\)}"[\s\S]*weather-condition/, '날씨를 접근 가능한 아이콘과 글자로 함께 전달');
 assert.match(source, /tripPhase\(t,today\)==='after'\)\{node\.remove\(\)/, '종료된 여행에서는 날씨 카드를 노출하지 않음');
 assert.match(source, /needsRefresh\(cached,\{now:Date\.now\(\),maxAgeMs:30\*60\*1000,today:iso\(new Date\(\)\)\}\)/, '같은 위치의 반복 호출을 캐시로 차단하되 하루가 지나면 다시 조회');
 assert.match(source, /setInterval\(\(\)=>refreshForNewDay\(\),60000\)/, '앱을 켜 둔 상태에서도 날짜가 바뀌면 예보를 다시 불러옴');
@@ -114,7 +126,7 @@ assert.match(source, /visibilitychange[\s\S]{0,160}refreshForNewDay\(\)\)renderW
 assert.match(source, /function pruneWeatherCache\(\)/, '지난 날짜만 담긴 저장 예보는 정리');
 assert.match(source, /setupPwa\(\);pruneWeatherCache\(\);render\(\)/, '시작할 때 오래된 예보 캐시를 정리');
 assert.match(source, /weatherRequests\.has\(key\)\)return weatherRequests\.get\(key\)/, '동시 렌더에서 중복 요청을 합침');
-assert.match(source, /data-weather-location>다른 지역 보기/, '하루에 여러 지역이면 출발지와 도착지 날씨를 각각 확인');
+assert.match(source, /data-weather-location><span>/, '하루에 여러 지역이면 현재 순서와 지역 변경 동작 표시');
 assert.match(source, /weatherLocationDay!==selected\)\{weatherLocationDay=selected;weatherLocationIndex=0\}/, '날짜를 바꾸면 지역 선택을 초기화');
 
 // 날씨·환율 서버 경로
@@ -154,7 +166,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=66'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=66'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=67'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=67'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('121 expense and weather integration checks passed');
+console.log('133 expense and weather integration checks passed');
