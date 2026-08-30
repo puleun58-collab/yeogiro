@@ -30,6 +30,9 @@ assert.match(source, /id="expenseForm"[\s\S]{0,400}amount-field[\s\S]{0,200}name
 assert.match(source, /name="currency">\$\{currencies\}/, '통화는 지원 목록에서 선택');
 assert.match(source, /name="paidByMemberId" required/, '결제자를 필수로 선택');
 assert.match(source, /name="shareMemberIds"/, '분담 대상을 참여자별로 선택');
+assert.match(source, /import-symbol\{display:grid;place-items:center[\s\S]{0,180}\.import-symbol svg\{display:block;width:28px;height:28px/, '예약 문서 로고를 흰색 박스 정중앙에 배치');
+assert.match(source, /class="import-symbol" aria-hidden="true"><svg viewBox="0 0 24 24">/, '글꼴 위치 차이가 없는 대칭 SVG 예약 문서 로고 사용');
+assert.doesNotMatch(source, /항공편 직접 입력|숙소 직접 입력|일정 직접 입력|data-manual-import/, '자동 입력 패널에서 중복 직접 입력 진입점 제거');
 assert.match(source, /function expenseParticipantName\(member,current='',payer=false\)/, '경비 화면에서 권한명이 아닌 참여자 이름을 표시');
 assert.match(source, /payer\?'나 \(여행 만든 사람\)':'나'/, '현재 소유자는 결제자와 분담자 문맥에 맞게 표시');
 assert.match(source, /genericGuest\|\|!raw\)return'동행자'/, '초대 경로 대신 동행자 문구 사용');
@@ -141,7 +144,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=60'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=60'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=61'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=61'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('108 expense and weather integration checks passed');
+console.log('111 expense and weather integration checks passed');

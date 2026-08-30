@@ -73,8 +73,18 @@ assert.match(sync, /route:\$\{key\}/, '경로 캐시는 영구 여행 데이터�
 assert.match(sync, /7\*86400000/, '경로 캐시에 유한 만료 정책 적용');
 assert.match(source, /offline:!navigator\.onLine/, '오프라인 캐시 결과 상태 표시');
 assert.match(source, /저장된 이동시간/, '오프라인 이동시간을 최신처럼 표시하지 않음');
-assert.match(source, /새 경로 계산은 인터넷 연결이 필요합니다\./, '오프라인 재계산 차단');
+assert.match(source, /경로를 갱신하려면 인터넷 연결이 필요합니다\./, '오프라인 경로 갱신 차단');
 assert.match(source, /id="routeRetry"/, '라우팅 장애 재시도 제공');
+assert.match(source, /id="routeRetry" aria-label="경로 새로고침"[\s\S]{0,220}class="route-refresh-icon"[\s\S]{0,160}<span>경로<\/span>/, '긴 다시 계산 문구 대신 새로고침 아이콘과 경로 문구 사용');
+assert.match(source, /routeRetry\.loading \.route-refresh-icon\{animation:route-refresh-spin/, '경로 갱신 중 새로고침 아이콘 회전');
+assert.match(source, /character\.animate\(frames,\{duration:650/, '이전·다음 이동 시 캐릭터가 경로를 따라 이동');
+assert.match(source, /path\.animate\(\[\{strokeDasharray:[\s\S]{0,260}duration:700/, '지도 진입과 전환 시 경로선을 순서대로 그림');
+assert.match(source, /\.pin \.pin-label\{opacity:0[\s\S]{0,180}\.pin\.active \.pin-label/, '현재 장소 이름만 펼쳐 지도 혼잡을 줄임');
+assert.match(source, /@media\(prefers-reduced-motion:reduce\)[\s\S]{0,320}animation:none!important/, '동작 줄이기 설정에서는 지도 애니메이션 비활성화');
+assert.match(source, /routeDayTitle'\)\.textContent=fmt\(selected\)/, '날짜 제목에서 중복 동선 문구 제거');
+assert.match(source, /class="route-return-toggle"[\s\S]{0,120}숙소로 돌아오기/, '숙소 복귀 옵션을 작은 선택 버튼으로 표시');
+assert.match(source, /route-return-toggle'\)\.classList\.toggle\('hide',!lodgingAvailable\)/, '숙소가 있는 날짜에만 복귀 옵션 표시');
+assert.match(source, /route-stop-head>span>small\{margin-top:6px;line-height:1\.4\}/, '장소명과 하단 시간·주소 사이 간격 확보');
 assert.match(source, /reference=\(\)=>\(\{\.\.\.fallback,failed:true/, '지원 경로 API 실패 시 직선거리 참고값을 명시적으로 구분');
 assert.match(source, /background-image:url\('\$\{proxy\}'\),url\('\$\{direct\}'\)/, '지도 타일은 깨진 이미지 대신 Worker와 OSM 이중 배경으로 렌더');
 assert.match(source, /\/api\/map-tile\/\$\{z\}\/\$\{x\}\/\$\{y\}\.png\?v=3/, '이전 손상 타일 캐시를 우회');
@@ -101,4 +111,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('85 route optimization integration checks passed');
+console.log('95 route optimization integration checks passed');
