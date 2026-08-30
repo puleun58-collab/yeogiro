@@ -80,6 +80,8 @@ assert.match(source, /background-image:url\('\$\{proxy\}'\),url\('\$\{direct\}'\
 assert.match(source, /\/api\/map-tile\/\$\{z\}\/\$\{x\}\/\$\{y\}\.png\?v=3/, '이전 손상 타일 캐시를 우회');
 assert.match(source, /leg\.reference\?'직선거리 기준 '/, '경로 실패 시 참고값임을 명확히 표시');
 assert.match(source, /route-number\{display:inline-grid[\s\S]{0,100}width:22px;height:22px/, '일정 번호 원을 텍스트 크기에 맞게 축소');
+assert.match(source, /석굴로238[\s\S]{0,100}\[35\.7948033,129\.3491954\][\s\S]{0,100}숲머리길159[\s\S]{0,100}\[35\.8430039,129\.2530179\]/, '석굴암과 토함의 잘못 저장된 좌표를 실제 위치로 복구');
+assert.match(source, /\.pin\{position:absolute;width:auto;height:auto;padding:0;border:0;background:transparent;-webkit-appearance:none/, 'iOS 기본 버튼 배경이 지도 핀 주변을 가리지 않음');
 assert.match(source, /route-summary>span\{display:grid[\s\S]{0,100}gap:5px/, '장소 수와 경로 상태 문구 사이 간격 확보');
 
 assert.match(source, /위치 없음 · \$\{missing\.length\}개/, '좌표 없는 일정도 동선 목록에서 유지');
@@ -99,4 +101,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('83 route optimization integration checks passed');
+console.log('85 route optimization integration checks passed');
