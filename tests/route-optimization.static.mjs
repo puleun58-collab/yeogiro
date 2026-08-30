@@ -76,7 +76,7 @@ assert.match(source, /offline:!navigator\.onLine/, '오프라인 캐시 결과 �
 assert.match(source, /저장된 이동시간/, '오프라인 이동시간을 최신처럼 표시하지 않음');
 assert.match(source, /경로를 갱신하려면 인터넷 연결이 필요합니다\./, '오프라인 경로 갱신 차단');
 assert.match(source, /id="routeRetry"/, '라우팅 장애 재시도 제공');
-assert.match(source, /id="routeRetry" aria-label="경로 새로고침"[\s\S]{0,220}class="route-refresh-icon"[\s\S]{0,160}<span>경로<\/span>/, '긴 다시 계산 문구 대신 새로고침 아이콘과 경로 문구 사용');
+assert.match(source, /id="routeRetry" aria-label="경로 새로고침"[\s\S]{0,80}<span>경로<\/span>[\s\S]{0,160}class="route-refresh-icon"/, '경로 문구 오른쪽에 새로고침 아이콘 표시');
 assert.match(source, /routeRetry\.loading \.route-refresh-icon\{animation:route-refresh-spin/, '경로 갱신 중 새로고침 아이콘 회전');
 assert.match(source, /function animateTransportAlong\(geometry,move\)/, '선택 구간에서만 이동수단 아이콘이 경로를 따라 이동');
 assert.match(source, /routeMotionFrame=requestAnimationFrame\(step\)/, '이동 애니메이션은 requestAnimationFrame으로 실행');
@@ -110,6 +110,7 @@ assert.match(source, /label\.textContent=`\$\{index\+1\} · \$\{list\[index\]\.n
 assert.match(source, /closest\('\[data-pin\]'\)[\s\S]{0,240}moveJourneyTo\(index\)[\s\S]{0,90}focusRouteSelection\(index,true\)/, '마커 선택 시 해당 일정 카드로 연동');
 assert.match(source, /closest\('\[data-route-stop\]'\)[\s\S]{0,220}moveJourneyTo\(index\)/, '일정 카드 선택 시 지도 포커스 연동');
 assert.match(source, /last\?'마지막 일정':`\$\{journey\+1\}번째 일정`/, '개발자식 2\/2 대신 사용자 언어로 순서 표현');
+assert.match(source, /\.journey>#journeyText\{display:block;margin-bottom:14px\}/, '일정 순서 제목과 현재·다음 박스 사이 간격 확보');
 assert.match(source, /data-route-leg="\$\{index-1\}"[\s\S]{0,260}\$\{distanceText\}/, '일정 리스트에서도 구간 이동시간과 거리 표시');
 assert.match(source, /journey-primary-actions[\s\S]{0,260}data-journey-dir[\s\S]{0,240}data-journey-detail/, '현재·다음 일정 중심의 길찾기와 상세보기 제공');
 assert.match(source, /\.datechip:not\(\.on\)\{color:#4e5968\}/, '선택하지 않은 날짜 대비 강화');
@@ -148,4 +149,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('132 route optimization integration checks passed');
+console.log('133 route optimization integration checks passed');

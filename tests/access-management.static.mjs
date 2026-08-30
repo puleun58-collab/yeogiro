@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const source = readFileSync('index.html', 'utf8');
 const sync = readFileSync('sync.js', 'utf8');
 const worker = readFileSync('worker.js', 'utf8');
+const deviceTokenMigration = readFileSync('migrations/0012_device_connect_tokens.sql', 'utf8');
 
 assert.equal((source.match(/function shareSettings/g) || []).length, 1, '공유 관리 화면 구현은 하나만 존재');
 assert.equal((source.match(/function recoverSheet/g) || []).length, 1, '여행 복구 화면 구현은 하나만 존재');
@@ -20,7 +21,19 @@ assert.match(source, /id="displayNameForm"[\s\S]*maxlength="40"/, '표시명 변
 assert.match(source, /profile-summary[\s\S]*표시명[\s\S]*권한[\s\S]*현재 기기[\s\S]*마지막 동기화/, '내 정보 핵심 상태 네 가지를 한눈에 표시');
 assert.match(source, /소유자 관리[\s\S]*소유권 복구키[\s\S]*복구키 재발급/, '소유권 복구키를 내 정보의 소유자 전용 영역에 배치');
 assert.match(source, /data-revoke-session[\s\S]*내 기기 관리/, '실제 세션 기반 기기 관리 제공');
-assert.match(source, /function deviceLinkSheet[\s\S]*새 기기 연결 코드/, '공유 구성원 새 기기 연결 화면 제공');
+assert.match(source, /function deviceLinkSheet[\s\S]*<h2>새 기기 연결<\/h2>[\s\S]*기존 기기에서 만든 연결 코드를 입력해 주세요/, '연결 링크 진입 시 연결 코드만 요청');
+assert.doesNotMatch(source, /여행 ID 또는 연결 링크/, '기본 연결 화면에서 여행 ID 입력 제거');
+assert.match(source, /기존 기기에서 연결 링크를 먼저 만들어 주세요[\s\S]*<summary>다른 방법으로 연결<\/summary>[\s\S]*여행 ID 직접 입력/, '직접 진입 시 링크 안내 후 기존 방식을 고급 옵션으로 제공');
+assert.match(source, /name=\"connectToken\"[\s\S]*<label>연결 코드<\/label>/, '링크의 임시 토큰으로 여행을 자동 식별');
+assert.match(source, /formatDeviceCode\(value\)[\s\S]*toUpperCase\(\)[\s\S]*replace\(\/\[\^A-Z2-9\]\/g,''\)[\s\S]*match\(\/.\{1,4\}\/g\)/, '연결 코드는 붙여넣기와 하이픈 자동 입력 지원');
+assert.match(source, /function deviceCodeResult[\s\S]*15분 동안 한 번만[\s\S]*data-copy-device-link[\s\S]*data-share-device-link/, '기존 기기에서 만료 안내와 링크 복사·공유 제공');
+assert.match(source, /function deviceLinkComplete[\s\S]*이 기기에 연결되었습니다\.[\s\S]*기존 여행과 자동으로 동기화됩니다\.[\s\S]*여행 열기/, '연결 완료 화면은 내부 식별자 없이 간단히 제공');
+assert.match(sync, /params\.get\('connect_token'\)[\s\S]*deviceLinkToken/, '연결 링크 토큰을 시작 시 자동 인식');
+assert.match(sync, /JSON\.stringify\(\{tripId,connectToken,code,\.\.\.deviceInfo\(\)\}\)/, '링크 토큰과 코드로 새 기기 세션 요청');
+assert.match(worker, /connect_token_hash/, '연결 대상 임시 토큰은 해시로만 저장');
+assert.match(worker, /connectUrl:`\/\?connect_token=\$\{encodeURIComponent\(connectToken\)\}`/, '연결 링크에 여행 ID나 접근 토큰 대신 임시 토큰만 포함');
+assert.match(deviceTokenMigration, /ADD COLUMN connect_token_hash TEXT/, '기존 기기 연결 코드에 임시 링크 토큰 해시 추가');
+assert.match(deviceTokenMigration, /UNIQUE INDEX member_device_codes_connect_token/, '연결 링크 임시 토큰 중복 차단');
 assert.match(source, /trip-access-stack[\s\S]*기존 여행 복구[\s\S]*data-open-device-link>새 기기에 연결/, '여행 목록에서 기존 여행 복구와 새 기기 연결 제공');
 assert.match(source, /id="recoveryForm"[\s\S]*소유권 복구키[\s\S]*class="save management-primary-action">이 기기에서 복구[\s\S]*id="deviceLinkForm"[\s\S]*class="save management-primary-action">이 기기에 연결/, '복구와 기기 연결 기본 버튼 규격 통일');
 assert.match(source, /<h2>공유 및 권한<\/h2>[\s\S]*<h3>참여자<\/h3>[\s\S]*<h3>새 초대<\/h3>[\s\S]*<h3>활성 초대 링크<\/h3>[\s\S]*<summary>관리<\/summary>/, '공유 및 권한 화면 정보 순서 유지');
@@ -86,7 +99,7 @@ assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callo
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=65',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=66',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
@@ -96,4 +109,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('89 access management and extraction UI checks passed');
+console.log('101 access management and extraction UI checks passed');

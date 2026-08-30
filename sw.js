@@ -1,16 +1,16 @@
-const APP_CACHE = 'yeogiro-app-v65';
+const APP_CACHE = 'yeogiro-app-v66';
 const MAP_CACHE = 'yeogiro-map-v3';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/data-integrity.js?v=65',
-  '/expense-logic.js?v=65',
-  '/weather-logic.js?v=65',
-  '/sync.js?v=65',
-  '/sync-ui.js?v=65',
-  '/travel-logic.js?v=65',
-  '/pwa-update.js?v=65',
+  '/data-integrity.js?v=66',
+  '/expense-logic.js?v=66',
+  '/weather-logic.js?v=66',
+  '/sync.js?v=66',
+  '/sync-ui.js?v=66',
+  '/travel-logic.js?v=66',
+  '/pwa-update.js?v=66',
   '/offline.html',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v8.png',

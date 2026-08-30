@@ -266,17 +266,23 @@ async function leaveTrip(env,tripId,member){
   return new Response(null,{status:204});
 }
 async function issueDeviceLink(request,env,tripId,member){
-  const code=deviceLinkCode(),stamp=now(),expiresAt=new Date(Date.now()+15*60*1000).toISOString();
-  await env.DB.batch([env.DB.prepare('UPDATE member_device_codes SET revoked_at=? WHERE member_id=? AND revoked_at IS NULL AND consumed_at IS NULL').bind(stamp,member.id),env.DB.prepare('INSERT INTO member_device_codes (id,member_id,code_hash,created_at,expires_at) VALUES (?,?,?,?,?)').bind(id('dlc'),member.id,await hash(normalizeRecoveryKey(code)),stamp,expiresAt)]);
+  let body={};try{body=await request.json()}catch{}
+  const lifetime=Math.min(900,Math.max(1,Number(body.expiresInSeconds)||900)),code=deviceLinkCode(),connectToken=randomToken(24),stamp=now(),expiresAt=new Date(Date.now()+lifetime*1000).toISOString();
+  await env.DB.batch([env.DB.prepare('UPDATE member_device_codes SET revoked_at=? WHERE member_id=? AND revoked_at IS NULL AND consumed_at IS NULL').bind(stamp,member.id),env.DB.prepare('INSERT INTO member_device_codes (id,member_id,code_hash,connect_token_hash,created_at,expires_at) VALUES (?,?,?,?,?,?)').bind(id('dlc'),member.id,await hash(normalizeRecoveryKey(code)),await hash(connectToken),stamp,expiresAt)]);
   await securityEvent(request,env,tripId,'device_link_code_issued');
-  return json({code,expiresAt,connectUrl:`/?connect=${encodeURIComponent(tripId)}`},201);
+  return json({code,expiresAt,connectUrl:`/?connect_token=${encodeURIComponent(connectToken)}`},201);
 }
 async function redeemDeviceLink(request,env){
   let body;try{body=await request.json()}catch{return json({error:'연결 정보를 확인해 주세요.'},400)}
-  const tripId=clean(body.tripId,100),code=normalizeRecoveryKey(body.code),stamp=now();
-  if(await rateLimited(request,env,'device-link-ip',30,900)||await rateLimited(request,env,`device-link:${tripId||'unknown'}`,8,900)){await securityEvent(request,env,tripId,'device_link_rate_limited');return json({error:'연결 시도가 많습니다. 15분 뒤 다시 시도해 주세요.'},429)}
-  const row=tripId&&code.length===16?await env.DB.prepare(`SELECT c.id,c.member_id,m.role FROM member_device_codes c JOIN members m ON m.id=c.member_id JOIN trips t ON t.id=m.trip_id WHERE c.code_hash=? AND m.trip_id=? AND c.revoked_at IS NULL AND c.consumed_at IS NULL AND c.expires_at>? AND m.revoked_at IS NULL AND t.deleted_at IS NULL`).bind(await hash(code),tripId,stamp).first():null;
-  if(!row){await securityEvent(request,env,tripId,'device_link_failed');return json({error:'연결 코드가 올바르지 않거나 만료되었습니다.'},401)}
+  const legacyTripId=clean(body.tripId,100),connectToken=clean(body.connectToken,100),code=normalizeRecoveryKey(body.code),stamp=now(),targetKey=connectToken?await hash(connectToken):legacyTripId||'unknown';
+  if(await rateLimited(request,env,'device-link-ip',30,900)||await rateLimited(request,env,`device-link:${targetKey}`,8,900)){await securityEvent(request,env,legacyTripId,'device_link_rate_limited');return json({error:'연결 시도가 많습니다. 15분 뒤 다시 시도해 주세요.'},429)}
+  let row=null;
+  if(code.length===16&&connectToken)row=await env.DB.prepare(`SELECT c.id,c.member_id,c.expires_at,c.consumed_at,c.revoked_at,m.trip_id,m.role,m.revoked_at AS member_revoked_at,t.deleted_at FROM member_device_codes c JOIN members m ON m.id=c.member_id JOIN trips t ON t.id=m.trip_id WHERE c.connect_token_hash=? AND c.code_hash=?`).bind(await hash(connectToken),await hash(code)).first();
+  else if(code.length===16&&legacyTripId)row=await env.DB.prepare(`SELECT c.id,c.member_id,c.expires_at,c.consumed_at,c.revoked_at,m.trip_id,m.role,m.revoked_at AS member_revoked_at,t.deleted_at FROM member_device_codes c JOIN members m ON m.id=c.member_id JOIN trips t ON t.id=m.trip_id WHERE c.code_hash=? AND m.trip_id=?`).bind(await hash(code),legacyTripId).first();
+  const tripId=row?.trip_id||legacyTripId;
+  if(!row||row.member_revoked_at||row.deleted_at||legacyTripId&&row.trip_id!==legacyTripId){await securityEvent(request,env,tripId,'device_link_failed');return json({error:'연결 코드를 확인해 주세요.'},401)}
+  if(row.consumed_at){await securityEvent(request,env,tripId,'device_link_reused');return json({error:'이미 사용된 연결 코드입니다.'},409)}
+  if(row.revoked_at||row.expires_at<=stamp){await securityEvent(request,env,tripId,'device_link_expired');return json({error:'연결 코드가 만료되었습니다. 기존 기기에서 새 연결 코드를 만들어 주세요.'},410)}
   const accessToken=randomToken(),sessionId=id('ses'),device=deviceMeta(body),assertion=id('assert');
   try{await env.DB.batch([env.DB.prepare('UPDATE member_device_codes SET consumed_at=? WHERE id=? AND consumed_at IS NULL AND revoked_at IS NULL AND expires_at>?').bind(stamp,row.id,stamp),env.DB.prepare('INSERT INTO sync_assertions (id,value) VALUES (?,changes())').bind(assertion),env.DB.prepare(`INSERT INTO sessions (id,member_id,token_hash,device_id,device_name,platform,client_type,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(sessionId,row.member_id,await hash(accessToken),device.deviceId,device.deviceName,device.platform,device.clientType,stamp,stamp),env.DB.prepare('DELETE FROM sync_assertions WHERE id=?').bind(assertion)])}catch{return json({error:'이미 사용했거나 만료된 연결 코드입니다.'},409)}
   await securityEvent(request,env,tripId,'device_link_succeeded');

@@ -88,18 +88,49 @@ try {
   assert.equal(renamedEditor.data.displayName, '여행 친구', '표시명 변경');
   assert.equal((await api(`/api/trips/${id}/me`, { method: 'PATCH', token: editor, body: { displayName: '   ' } })).response.status, 400, '빈 표시명 거부');
 
+  const membersBeforeDeviceLinks = (await api(`/api/trips/${id}/access`, { token: owner })).data.members.length;
   const deviceCode = await api(`/api/trips/${id}/me/device-code`, { method: 'POST', token: editor, body: {} });
-  assert.equal(deviceCode.response.status, 201, '편집자도 새 기기 연결 코드 생성');
+  assert.equal(deviceCode.response.status, 201, '편집자도 새 기기 연결 링크 생성');
   assert.match(deviceCode.data.code, /^(?:[A-Z2-9]{4}-){3}[A-Z2-9]{4}$/, '기기 연결 코드 표시 형식');
+  const editorConnectUrl = new URL(deviceCode.data.connectUrl, 'https://yeogiro.example');
+  const editorConnectToken = editorConnectUrl.searchParams.get('connect_token');
+  assert.ok(editorConnectToken, '연결 URL에 안전한 임시 식별자 포함');
+  assert.equal(editorConnectUrl.searchParams.has('connect'), false, '새 연결 URL에 여행 ID 미노출');
   assert.ok(!deviceCode.data.connectUrl.includes(deviceCode.data.code), '연결 URL에 코드 원문 미포함');
-  const badDeviceCode = await api('/api/device-links/redeem', { method: 'POST', body: { tripId: id, code: 'AAAA-BBBB-CCCC-DDDD' } });
-  assert.equal(badDeviceCode.response.status, 401, '잘못된 기기 연결 코드 거부');
-  const linkedEditor = await api('/api/device-links/redeem', { method: 'POST', body: { tripId: id, code: deviceCode.data.code, deviceId: 'editor-second', deviceName: '여행용 iPad', platform: 'iOS', clientType: 'pwa' } });
-  assert.equal(linkedEditor.response.status, 201, '새 기기에 기존 구성원 세션 생성');
-  assert.equal(linkedEditor.data.role, 'editor', '새 기기에서도 권한 상승 없음');
-  assert.equal((await api('/api/device-links/redeem', { method: 'POST', body: { tripId: id, code: deviceCode.data.code } })).response.status, 401, '1회용 기기 연결 코드 재사용 거부');
+  assert.equal((await api('/api/device-links/redeem', { method: 'POST', body: { connectToken: editorConnectToken, code: 'AAAA-BBBB-CCCC-DDDD' } })).response.status, 401, '잘못된 기기 연결 코드 거부');
+  assert.equal((await api('/api/device-links/redeem', { method: 'POST', body: { connectToken: editorConnectToken, tripId: `${id}-other`, code: deviceCode.data.code } })).response.status, 401, '연결 링크를 다른 여행 대상으로 재사용하지 못함');
+  const linkedEditor = await api('/api/device-links/redeem', { method: 'POST', body: { connectToken: editorConnectToken, code: deviceCode.data.code.toLowerCase().replaceAll('-', ''), deviceId: 'editor-second', deviceName: '여행용 iPad', platform: 'iOS', clientType: 'pwa' } });
+  assert.equal(linkedEditor.response.status, 201, '링크와 정규화된 코드로 기존 구성원 세션 생성');
+  assert.equal(linkedEditor.data.role, 'editor', '새 기기에서도 편집 권한 유지');
+  assert.equal(linkedEditor.data.memberId, editorJoin.data.memberId, '새 기기 연결은 새 참여자를 만들지 않음');
+  const reusedEditor = await api('/api/device-links/redeem', { method: 'POST', body: { connectToken: editorConnectToken, code: deviceCode.data.code } });
+  assert.equal(reusedEditor.response.status, 409, '사용 완료 연결 코드 재사용 차단');
+  assert.match(reusedEditor.data.error, /이미 사용된/, '사용 완료 오류를 사용자 문구로 구분');
   assert.equal((await api(`/api/trips/${id}/sessions/${linkedEditor.data.sessionId}`, { method: 'DELETE', token: editor })).response.status, 200, '편집자가 본인 다른 기기 연결 해제');
   assert.equal((await api(`/api/trips/${id}`, { token: linkedEditor.data.accessToken })).response.status, 401, '해제된 본인 기기 세션 즉시 401');
+
+  for (const [label, token, expectedRole, memberId] of [['소유자', owner, 'owner', created.data.memberId], ['보기 전용', viewer, 'viewer', viewerJoin.data.memberId]]) {
+    const issued = await api(`/api/trips/${id}/me/device-code`, { method: 'POST', token, body: {} });
+    const connectToken = new URL(issued.data.connectUrl, 'https://yeogiro.example').searchParams.get('connect_token');
+    const linked = await api('/api/device-links/redeem', { method: 'POST', body: { connectToken, code: issued.data.code, deviceId: `${expectedRole}-second` } });
+    assert.equal(linked.response.status, 201, `${label} 새 기기 연결 성공`);
+    assert.equal(linked.data.role, expectedRole, `${label} 권한 그대로 유지`);
+    assert.equal(linked.data.memberId, memberId, `${label} 새 참여자 중복 생성 없음`);
+    assert.equal((await api(`/api/trips/${id}/sessions/${linked.data.sessionId}`, { method: 'DELETE', token })).response.status, 200, `${label} 새 기기 세션만 연결 해제`);
+  }
+
+  const legacyCode = await api(`/api/trips/${id}/me/device-code`, { method: 'POST', token: editor, body: {} });
+  const legacyLinked = await api('/api/device-links/redeem', { method: 'POST', body: { tripId: id, code: legacyCode.data.code, deviceId: 'legacy-second' } });
+  assert.equal(legacyLinked.response.status, 201, '기존 여행 ID와 코드 방식 호환');
+  assert.equal((await api(`/api/trips/${id}/sessions/${legacyLinked.data.sessionId}`, { method: 'DELETE', token: editor })).response.status, 200, '기존 방식 세션도 개별 연결 해제');
+
+  const expiringCode = await api(`/api/trips/${id}/me/device-code`, { method: 'POST', token: editor, body: { expiresInSeconds: 1 } });
+  const expiringToken = new URL(expiringCode.data.connectUrl, 'https://yeogiro.example').searchParams.get('connect_token');
+  await new Promise(resolve => setTimeout(resolve, 1100));
+  const expiredDeviceCode = await api('/api/device-links/redeem', { method: 'POST', body: { connectToken: expiringToken, code: expiringCode.data.code } });
+  assert.equal(expiredDeviceCode.response.status, 410, '만료된 기기 연결 코드 거부');
+  assert.match(expiredDeviceCode.data.error, /만료되었습니다/, '만료 오류를 사용자 문구로 구분');
+  assert.equal((await api(`/api/trips/${id}/access`, { token: owner })).data.members.length, membersBeforeDeviceLinks, '여러 기기 연결 후에도 참여자 수 유지');
   assert.equal((await api(`/api/trips/${id}/me`, { method: 'DELETE', token: owner })).response.status, 409, '여행 관리자는 관리자 넘기기 전 나가기 차단');
 
   const leavingInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: true } });
@@ -311,7 +342,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('135 API integration checks passed');
+  console.log('149 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
