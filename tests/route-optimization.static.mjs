@@ -49,6 +49,8 @@ assert.match(source, /draft\.moveMinutes=/, '수동 이동시간을 여행 데�
 assert.match(source, /Number\.isInteger\(b\.moveMinutes\)/, '수동값이 자동 라우팅보다 우선');
 assert.match(source, /manual:true/, '수동 이동시간 표시 상태 보존');
 assert.match(source, /name="fixed"/, '고정 일정 설정 제공');
+assert.match(source, /<span>시간 세부 설정<\/span>/, '고정 일정 선택을 기본 날짜 입력에서 세부 설정으로 이동');
+assert.match(source, /시간 변경이 어려운 일정[\s\S]{0,80}동선 추천에서 이 시간을 보호/, '고정 일정이 필요한 이유를 사용자 언어로 안내');
 assert.match(source, /draft\.fixed=fd\.get\('fixed'\)==='on'/, '고정 여부를 여행 데이터에 저장');
 assert.match(source, /고정 일정이나 종료시간이 있는 일정은 시간을 직접 편집/, '고정·종료시간 일정의 간편 재배치 차단');
 
@@ -95,4 +97,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('79 route optimization integration checks passed');
+console.log('81 route optimization integration checks passed');

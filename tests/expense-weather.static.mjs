@@ -17,7 +17,8 @@ assert.match(source, /\[\['summary','요약'\],\['list','지출'\],\['settlement
 assert.match(source, /budget==null\?'':`<div class="expense-progress"/, '예산을 설정하지 않으면 진행률을 표시하지 않음');
 assert.match(source, /예산을 \$\{money\(-remaining,base\)\} 초과했습니다\./, '예산 초과를 차단하지 않고 금액으로 안내');
 assert.match(source, /예산의 \$\{percent\}% 사용/, '예산 사용률을 보조 정보로 제공');
-assert.match(source, /expense-budget-action\.addline[\s\S]{0,180}margin:20px auto 0/, '예산 설정 버튼을 작게 만들고 금액 영역과 간격 확보');
+assert.match(source, /expense-hero-head\{display:flex[\s\S]{0,120}margin-bottom:20px/, '핵심 금액과 하단 사용 내역 사이 간격 확보');
+assert.match(source, /expense-budget-action\.addline[\s\S]{0,180}margin:0/, '예산 설정 버튼을 작게 만들어 카드 오른쪽 위에 배치');
 assert.match(source, /expense-budget-form \.field select,\.expense-budget-form \.field input\{height:56px;min-height:56px/, '기준 통화와 총 예산 입력 높이를 통일');
 assert.match(source, /expense-breakdown-row small\{display:block;margin-top:5px/, '참여자명과 결제·부담 정보를 분리해 표시');
 assert.match(source, /expense-breakdown-row>b\{min-width:68px;text-align:right/, '참여자 상세와 오른쪽 정산 금액 사이 간격 확보');
@@ -133,7 +134,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=56'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=56'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=57'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=57'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('100 expense and weather integration checks passed');
+console.log('101 expense and weather integration checks passed');

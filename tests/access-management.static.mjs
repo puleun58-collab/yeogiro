@@ -26,7 +26,7 @@ assert.match(source, /<h2>공유 및 권한<\/h2>[\s\S]*<h3>참여자<\/h3>[\s\S
 assert.match(source, /id="inviteRole"[\s\S]*id="inviteUsage"[\s\S]*id="inviteExpiry"[\s\S]*value="1"[\s\S]*value="7" selected[\s\S]*value="30"/, '초대 권한·사용 방식·만료 선택과 7일 기본값 제공');
 assert.match(source, /function inviteResultSheet[\s\S]*data-copy-invite-link>링크 복사[\s\S]*data-share-invite-link>공유/, '초대 생성 후 복사와 시스템 공유 제공');
 assert.match(source, /data-change-member-role[\s\S]*참여자 권한 변경[\s\S]*askConfirm/, '권한 변경 전 앱 내부 재확인 제공');
-assert.match(source, /id="timeOptionsToggle"[\s\S]*aria-expanded="\$\{expanded\}"[\s\S]*종료시간·준비시간 설정/, '종료시간과 준비시간을 선택형 접기 영역으로 제공');
+assert.match(source, /id="timeOptionsToggle"[\s\S]*aria-expanded="\$\{expanded\}"[\s\S]*시간 세부 설정/, '종료·준비·고정 시간을 선택형 접기 영역으로 제공');
 assert.match(source, /prepOptions=\[\[0,'없음'\],\[10,'10분'\],\[20,'20분'\],\[30,'30분'\],\[60,'1시간'\],\['custom','직접 입력'\]\]/, '준비시간 빠른 선택값과 직접 입력 제공');
 assert.match(source, /name="preparationMinutes"[\s\S]*id="preparationHours"[\s\S]*id="preparationMinutePart"/, '시간·분 선택 결과를 기존 분 단위 필드로 유지');
 assert.match(source, /function askConfirm/, '관리 작업은 앱 내부 확인 화면 사용');
@@ -74,7 +74,7 @@ assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callo
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=56',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=57',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
