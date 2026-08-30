@@ -43,8 +43,10 @@ const groups = groupActivities([activity(), near, far]);
 assert.equal(groups.length, 2, '같은 사용자·종류·동작의 10분 이내 기록만 묶음');
 assert.equal(groups[0].entries.length, 2, '가까운 반복 기록을 한 묶음으로 유지');
 assert.match(activityMarkup(groups[0]), /일정 2건 수정/, '묶음 제목에 대상 건수를 표시');
+assert.match(activityMarkup(groups[0]), /동행자/, '기록에서 권한명 대신 참여자 표현 사용');
+assert.doesNotMatch(activityMarkup(groups[0]), /여행 관리자/, '권한명은 기록 문구에 노출하지 않음');
 
 const many = Array.from({ length: 22 }, (_, index) => ({ ...activity({ entity_id: `item-${index}`, created_at: `2026-08-23T${String(23 - Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '40' : '55'}:00.000Z` }), entries: [activity({ entity_id: `item-${index}` })] }));
 assert.match(activityListMarkup(many), /이전 기록 2건 더 보기/, '기본 20개 이후 기록은 더보기로 제공');
 
-console.log('10 activity history UI checks passed');
+console.log('13 activity history UI checks passed');

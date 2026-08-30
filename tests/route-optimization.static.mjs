@@ -28,7 +28,7 @@ assert.match(source, /class="pin[^`]*active/, '선택한 마커 강조');
 assert.match(source, /data-pin="\$\{i\.id\}"/, '마커와 정류장 ID 연결');
 assert.match(source, /data-route-stop="\$\{esc\(stop\.id\)\}"/, '동선 목록에서 같은 정류장 선택 가능');
 assert.match(source, /journeyDetail/, '선택 정류장 상세 영역 제공');
-assert.match(source, /다음 이동/, '선택 지점의 다음 이동정보 표시');
+assert.match(source, /journey-leg-copy[\s\S]{0,140}예상 이동 경로/, '선택 지점의 다음 이동정보 표시');
 
 assert.match(source, /routeBase\(profile\.key\)/, '기존 라우팅 프로필 재사용');
 assert.match(travel, /routing\.openstreetmap\.de/, '라우팅 주소는 travel logic의 기존 OSRM 계열 사용');
@@ -77,7 +77,10 @@ assert.match(source, /경로를 갱신하려면 인터넷 연결이 필요합니
 assert.match(source, /id="routeRetry"/, '라우팅 장애 재시도 제공');
 assert.match(source, /id="routeRetry" aria-label="경로 새로고침"[\s\S]{0,220}class="route-refresh-icon"[\s\S]{0,160}<span>경로<\/span>/, '긴 다시 계산 문구 대신 새로고침 아이콘과 경로 문구 사용');
 assert.match(source, /routeRetry\.loading \.route-refresh-icon\{animation:route-refresh-spin/, '경로 갱신 중 새로고침 아이콘 회전');
-assert.match(source, /character\.animate\(frames,\{duration:650/, '이전·다음 이동 시 캐릭터가 경로를 따라 이동');
+assert.match(source, /function animateTransportAlong\(geometry,move\)/, '선택 구간에서만 이동수단 아이콘이 경로를 따라 이동');
+assert.match(source, /routeMotionFrame=requestAnimationFrame\(step\)/, '이동 애니메이션은 requestAnimationFrame으로 실행');
+assert.match(source, /function cancelRouteMotion\(\)\{routeMotionToken\+\+/, '경로 변경 시 이전 애니메이션 정리');
+assert.match(source, /document\.visibilityState!=='visible'/, '화면 밖이나 백그라운드에서는 이동 애니메이션 중지');
 assert.match(source, /path\.animate\(\[\{strokeDasharray:[\s\S]{0,260}duration:700/, '지도 진입과 전환 시 경로선을 순서대로 그림');
 assert.match(source, /\.pin \.pin-label\{opacity:0[\s\S]{0,180}\.pin\.active \.pin-label/, '현재 장소 이름만 펼쳐 지도 혼잡을 줄임');
 assert.match(source, /@media\(prefers-reduced-motion:reduce\)[\s\S]{0,320}animation:none!important/, '동작 줄이기 설정에서는 지도 애니메이션 비활성화');
@@ -93,6 +96,29 @@ assert.match(source, /route-number\{display:inline-grid[\s\S]{0,100}width:22px;h
 assert.match(source, /석굴로238[\s\S]{0,100}\[35\.7948033,129\.3491954\][\s\S]{0,100}숲머리길159[\s\S]{0,100}\[35\.8430039,129\.2530179\]/, '석굴암과 토함의 잘못 저장된 좌표를 실제 위치로 복구');
 assert.match(source, /\.pin\{position:absolute;width:auto;height:auto;padding:0;border:0;background:transparent;-webkit-appearance:none/, 'iOS 기본 버튼 배경이 지도 핀 주변을 가리지 않음');
 assert.match(source, /route-summary>span\{display:grid[\s\S]{0,100}gap:5px/, '장소 수와 경로 상태 문구 사이 간격 확보');
+assert.match(source, /#map\{height:34vh;min-height:280px;max-height:350px\}/, '모바일 지도 높이를 축소해 일정 정보를 먼저 노출');
+assert.match(source, /\.map-frame\.expanded #map\{height:72vh/, '필요할 때만 지도를 크게 확장');
+assert.match(source, /id="mapExpand"[^>]*>지도 크게 보기</, '지도 크게 보기 진입 제공');
+assert.match(source, /\.route-summary\{order:2\}[\s\S]{0,90}\.map-frame\{order:4/, '동선 요약과 현재·다음 일정을 지도보다 먼저 배치');
+assert.match(source, /route-summary-title">오늘 동선</, '하루 이동 규모를 지도 상단에서 요약');
+assert.match(source, /modes\.length===1\?`\$\{modes\[0\]\} 이동 기준`/, '요약에 이동수단 기준 표시');
+assert.match(source, /label\.textContent=`\$\{index\+1\} · \$\{list\[index\]\.name\}`/, '선택된 마커에서만 장소명을 노출');
+assert.match(source, /closest\('\[data-pin\]'\)[\s\S]{0,240}moveJourneyTo\(index\)[\s\S]{0,90}focusRouteSelection\(index,true\)/, '마커 선택 시 해당 일정 카드로 연동');
+assert.match(source, /closest\('\[data-route-stop\]'\)[\s\S]{0,220}moveJourneyTo\(index\)/, '일정 카드 선택 시 지도 포커스 연동');
+assert.match(source, /last\?'마지막 일정':`\$\{journey\+1\}번째 일정`/, '개발자식 2\/2 대신 사용자 언어로 순서 표현');
+assert.match(source, /data-route-leg="\$\{index-1\}"[\s\S]{0,260}\$\{distanceText\}/, '일정 리스트에서도 구간 이동시간과 거리 표시');
+assert.match(source, /journey-primary-actions[\s\S]{0,260}data-journey-dir[\s\S]{0,240}data-journey-detail/, '현재·다음 일정 중심의 길찾기와 상세보기 제공');
+assert.match(source, /\.datechip:not\(\.on\)\{color:#4e5968\}/, '선택하지 않은 날짜 대비 강화');
+assert.match(source, /function transportType\(move=''\)[\s\S]{0,240}자전거[\s\S]{0,90}버스[\s\S]{0,140}자동차\|택시/, '이동수단별 아이콘 자동 선택');
+assert.match(source, /stroke-width="1\.8" stroke-linecap="round"/, '게임풍 블록 대신 플랫 아이콘 사용');
+assert.doesNotMatch(source, /fill="#f2b48c"/, '기존 게임 캐릭터 그래픽 제거');
+assert.match(source, /\.routeSvg path\.selected-leg\{opacity:1/, '선택 구간만 강조하고 나머지 경로는 약하게 표시');
+assert.match(source, /route-estimate-badge">예상 이동 경로</, '실제 위치가 아니라 예상 이동 경로임을 명시');
+assert.match(source, /\.character\{width:32px;height:32px/, '현재 위치 아이콘을 일정 마커보다 작게 표시');
+assert.match(source, /directional=\['car','bus','bicycle'\]\.includes\(transportType\(move\)\)/, '방향성 있는 이동수단만 경로 방향으로 회전');
+assert.match(source, /timedTarget=next&&\(next\.type==='item'\|\|next\.id\.startsWith\('airport-depart-'\)\)/, '숙소 정렬용 임시 시간으로 출발 권장을 만들지 않음');
+assert.match(source, /if\(map\.tileHtml!==html\)\{map\.tileHtml=html;tiles\.innerHTML=html\}/, '같은 타일 구성은 재사용해 선택 시 지도 깜빡임 방지');
+assert.match(source, /\.no-pin-enter \.pin\{animation:none\}/, '선택 전환에서는 마커 등장 애니메이션 반복 안 함');
 
 assert.match(source, /위치 없음 · \$\{missing\.length\}개/, '좌표 없는 일정도 동선 목록에서 유지');
 assert.match(source, /data-route-location=/, '좌표 없는 일정의 위치 설정 진입');
@@ -111,4 +137,4 @@ assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전�
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('95 route optimization integration checks passed');
+console.log('121 route optimization integration checks passed');

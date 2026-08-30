@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const source = readFileSync('index.html', 'utf8');
+const sync = readFileSync('sync.js', 'utf8');
 const worker = readFileSync('worker.js', 'utf8');
 
 assert.equal((source.match(/function shareSettings/g) || []).length, 1, '공유 관리 화면 구현은 하나만 존재');
@@ -30,6 +31,17 @@ assert.match(source, /id="timeOptionsToggle"[\s\S]*aria-expanded="\$\{expanded\}
 assert.match(source, /prepOptions=\[\[0,'없음'\],\[10,'10분'\],\[20,'20분'\],\[30,'30분'\],\[60,'1시간'\],\['custom','직접 입력'\]\]/, '준비시간 빠른 선택값과 직접 입력 제공');
 assert.match(source, /name="preparationMinutes"[\s\S]*id="preparationHours"[\s\S]*id="preparationMinutePart"/, '시간·분 선택 결과를 기존 분 단위 필드로 유지');
 assert.match(source, /function askConfirm/, '관리 작업은 앱 내부 확인 화면 사용');
+assert.match(source, /function actorName\(row\)[\s\S]{0,320}return`\$\{raw\} 님`/, '휴지통과 기록에서 권한명 대신 참여자 이름 사용');
+assert.match(source, /actorSubject\(row\)\{let name=actorName\(row\);return name==='나'\?'내가'/, '내가 삭제한 항목은 내 기준으로 표시');
+assert.doesNotMatch(source, /display_name\|\|'참여자'\}\)\}이 삭제/, '어색한 조사 표기 제거');
+assert.match(source, /data-empty-trash=\"\$\{data\.trash\.length\}\"[^`]*휴지통 비우기/, '소유자에게 휴지통 비우기 제공');
+assert.match(source, /휴지통에 있는 \$\{b\.dataset\.emptyTrash\}개 항목을 완전히 삭제합니다/, '되돌릴 수 없는 삭제임을 확인 후 실행');
+assert.match(source, /YeogiroStore\.emptyTrash\(\)/, '휴지통 비우기는 서버 API로 처리');
+assert.match(sync, /trash`,\{method:'DELETE'\}/, '동기화 계층에서 휴지통 영구 삭제 요청');
+assert.match(worker, /소유자만 휴지통을 비울 수 있습니다\./, '소유자만 휴지통을 비울 수 있음');
+assert.match(worker, /DELETE FROM trip_trash WHERE trip_id=\? AND restored_at IS NULL/, '복원 대기 항목만 영구 삭제');
+assert.match(worker, /휴지통 \$\{purged\}개 영구 삭제/, '휴지통 비우기도 기록에 남김');
+assert.match(worker, /t\.deleted_by_member_id AS member_id/, '휴지통 항목의 삭제자 식별자 제공');
 assert.doesNotMatch(source, /dataset\.transferOwner\)\{if\(!confirm|dataset\.revokeMember\)\{if\(!confirm|dataset\.revokeSession\)\{[^}]*confirm/, '공유·기기 위험 작업에서 브라우저 확인창 제거');
 assert.match(source, /id="myShare"[^>]*>👤 내 정보/, '설정 메뉴에서 내 정보 명칭 사용');
 assert.match(source, /id="tripShare"[^>]*>🔗 공유 및 권한/, '설정 메뉴에서 공유 및 권한 명칭 사용');
@@ -74,7 +86,7 @@ assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callo
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=61',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=63',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
@@ -84,4 +96,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('62 access management and extraction UI checks passed');
+console.log('89 access management and extraction UI checks passed');

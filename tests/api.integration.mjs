@@ -244,6 +244,19 @@ try {
   const expenseRestored = await api(`/api/trips/${id}/trash/${trashedExpense.id}/restore`, { method: 'POST', token: editor, body: {} });
   assert.equal(expenseRestored.response.status, 200, '경비 복원 가능');
   assert.equal(expenseRestored.data.trip.expenses[0].title, '함께 먹은 식사', '경비 원본 정보 복원');
+  assert.ok(trash.data.trash[0].member_id, '휴지통 항목에 삭제한 참여자 식별자 포함');
+  const purgeTarget = structuredClone(expenseRestored.data.trip);
+  purgeTarget.expenses = [];
+  const purgePrepared = await api(`/api/trips/${id}`, { method: 'PUT', token: editor, body: { trip: purgeTarget, baseRevision: expenseRestored.data.trip.revision } });
+  assert.equal(purgePrepared.response.status, 200, '휴지통 비우기 검증용 삭제 반영');
+  assert.ok((await api(`/api/trips/${id}/trash`, { token: owner })).data.trash.length > 0, '비우기 전 휴지통에 항목 존재');
+  assert.equal((await api(`/api/trips/${id}/trash`, { method: 'DELETE', token: editor })).response.status, 403, '편집 권한은 휴지통을 비울 수 없음');
+  assert.equal((await api(`/api/trips/${id}/trash`, { method: 'DELETE', token: viewer })).response.status, 403, '보기 전용은 휴지통을 비울 수 없음');
+  const purged = await api(`/api/trips/${id}/trash`, { method: 'DELETE', token: owner });
+  assert.equal(purged.response.status, 200, '소유자는 휴지통을 비울 수 있음');
+  assert.ok(purged.data.purged > 0, '영구 삭제한 항목 수 반환');
+  assert.equal((await api(`/api/trips/${id}/trash`, { token: owner })).data.trash.length, 0, '비운 뒤 휴지통이 비어 있음');
+  assert.ok((await api(`/api/trips/${id}/activity`, { token: owner })).data.activities.some(entry => entry.details?.semanticAction === 'purged'), '휴지통 비우기가 기록에 남음');
   assert.equal((await api('/api/weather')).response.status, 400, '날씨 API 위치 누락 차단');
   const sameRate = await api('/api/exchange-rate?from=KRW&to=KRW');
   assert.equal(sameRate.data.rateMicros, 1000000, '같은 통화는 환율 1로 응답');
@@ -298,7 +311,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('72 API integration checks passed');
+  console.log('135 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;

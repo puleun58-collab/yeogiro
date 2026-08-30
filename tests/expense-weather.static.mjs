@@ -37,7 +37,10 @@ assert.match(source, /function expenseParticipantName\(member,current='',payer=f
 assert.match(source, /payer\?'나 \(여행 만든 사람\)':'나'/, '현재 소유자는 결제자와 분담자 문맥에 맞게 표시');
 assert.match(source, /genericGuest\|\|!raw\)return'동행자'/, '초대 경로 대신 동행자 문구 사용');
 assert.match(source, /x\.payerName\|\|x\.name/, '결제자 선택에는 나와 여행 만든 사람 관계를 함께 안내');
-assert.match(source, /명이 최소 통화 단위까지 균등하게 나눕니다/, '균등 분할 정책을 선택 인원과 함께 명시');
+assert.doesNotMatch(source, /최소 통화 단위까지 균등하게 나눕니다/, '분담 화면에서 불필요한 정책 설명 문구 제거');
+assert.doesNotMatch(source, /정산과 예산은 이 통화로 계산합니다/, '기준 통화 아래 보조 설명 제거');
+assert.match(source, /기준 통화<\/label><select name="baseCurrency">\$\{options\}<\/select><\/div>/, '기준 통화는 선택만 남김');
+assert.match(source, /picked\?\(per\?`1인 약 \$\{per\}`:''\)/, '금액을 입력했을 때만 1인 부담액 안내');
 assert.match(source, /class="share-chips" id="shareChips"/, '분담자를 큰 상자 대신 한 줄 칩으로 선택');
 assert.match(source, /share-chip\{position:relative[\s\S]{0,140}border-radius:999px/, '분담자 칩은 화면을 적게 차지하는 알약 형태');
 assert.match(source, /data-share-all>모두 선택/, '참여자가 여러 명이면 한 번에 선택하거나 해제');
@@ -144,7 +147,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=61'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=61'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=63'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=63'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('111 expense and weather integration checks passed');
+console.log('114 expense and weather integration checks passed');
