@@ -19,6 +19,18 @@ try {
   assert.equal(multiInvite.response.status, 201);
   const editorJoin = await call('/api/invites/redeem', { method: 'POST', body: { token: multiInvite.data.token, displayName: '운영 편집자', deviceId: 'smoke-editor' } });
   assert.equal(editorJoin.response.status, 201);
+  const deviceLink = await call(`/api/trips/${id}/me/device-code`, { method: 'POST', token: editorJoin.data.accessToken, body: {} });
+  assert.equal(deviceLink.response.status, 201);
+  const connectToken = new URL(deviceLink.data.connectUrl, base).searchParams.get('connect_token');
+  assert.ok(connectToken);
+  assert.equal(new URL(deviceLink.data.connectUrl, base).searchParams.has('connect'), false);
+  const linkedDevice = await call('/api/device-links/redeem', { method: 'POST', body: { connectToken, code: deviceLink.data.code, deviceId: 'smoke-editor-linked' } });
+  assert.equal(linkedDevice.response.status, 201);
+  assert.equal(linkedDevice.data.memberId, editorJoin.data.memberId);
+  assert.equal(linkedDevice.data.role, 'editor');
+  assert.equal((await call('/api/device-links/redeem', { method: 'POST', body: { connectToken, code: deviceLink.data.code } })).response.status, 409);
+  assert.equal((await call(`/api/trips/${id}/sessions/${linkedDevice.data.sessionId}`, { method: 'DELETE', token: editorJoin.data.accessToken })).response.status, 200);
+  assert.equal((await call(`/api/trips/${id}`, { token: linkedDevice.data.accessToken })).response.status, 401);
   assert.equal((await call('/api/invites/redeem', { method: 'POST', body: { token: multiInvite.data.token, displayName: '두 번째 편집자', deviceId: 'smoke-editor-2' } })).response.status, 201);
   const singleInvite = await call(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: true, expiresInDays: 1 } });
   assert.equal(singleInvite.response.status, 201);
@@ -43,7 +55,7 @@ try {
   const conflict = await call(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip, baseRevision: 1 } });
   assert.equal(conflict.response.status, 409);
   assert.equal(conflict.data.trip.note, '첫 번째 저장');
-  console.log('production multi-device, permissions, recovery and sync smoke passed');
+  console.log('production device-link, multi-device, permissions, recovery and sync smoke passed');
 } finally {
   if (owner) await call(`/api/trips/${id}`, { method: 'DELETE', token: owner });
 }
