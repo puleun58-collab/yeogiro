@@ -32,6 +32,10 @@ assert.match(source, /다음 이동/, '선택 지점의 다음 이동정보 표�
 
 assert.match(source, /routeBase\(profile\.key\)/, '기존 라우팅 프로필 재사용');
 assert.match(travel, /routing\.openstreetmap\.de/, '라우팅 주소는 travel logic의 기존 OSRM 계열 사용');
+assert.match(source, /fetch\('\/api\/route\?'\+params\)/, '브라우저 CORS 차이를 피하도록 Worker 경유');
+assert.match(worker, /async function routeForecast\(request,env,url\)/, 'Worker에 경로 프록시 제공');
+assert.match(worker, /radiuses=5000;5000/, '건물 좌표도 주변 도로에 스냅해 경로 계산');
+assert.match(worker, /router\.project-osrm\.org/, '자동차 경로는 기존 OSRM 계열 대체 엔드포인트 제공');
 assert.match(source, /result\.geometry\.coordinates\.map/, '직선이 아니라 API 경로 geometry 사용');
 assert.match(source, /profile\.routable/, '지원 가능한 이동수단만 자동 라우팅');
 assert.match(source, /unsupported:true/, '대중교통 등 미지원 수단은 가짜 시간 없이 구분');
@@ -70,6 +74,9 @@ assert.match(source, /저장된 이동시간/, '오프라인 이동시간을 최
 assert.match(source, /새 경로 계산은 인터넷 연결이 필요합니다\./, '오프라인 재계산 차단');
 assert.match(source, /id="routeRetry"/, '라우팅 장애 재시도 제공');
 assert.match(source, /durationMinutes:null,distanceKm:null,failed:true/, 'API 실패 시 추정값을 실제 경로처럼 표시하지 않음');
+assert.match(source, /src="\/api\/map-tile\/\$\{z\}\/\$\{x\}\/\$\{y\}\.png"/, '지도 타일을 Worker 프록시로 안정적으로 조회');
+assert.match(source, /data-direct="https:\/\/tile\.openstreetmap\.org/, '타일 프록시 실패 시 기존 OSM 직접 요청으로 대체');
+assert.match(source, /route-summary>span\{display:grid[\s\S]{0,100}gap:5px/, '장소 수와 경로 상태 문구 사이 간격 확보');
 
 assert.match(source, /위치 없음 · \$\{missing\.length\}개/, '좌표 없는 일정도 동선 목록에서 유지');
 assert.match(source, /data-route-location=/, '좌표 없는 일정의 위치 설정 진입');
@@ -86,5 +93,6 @@ assert.match(source, /role!=='viewer'\?`<button data-route-shift/, 'viewer에게
 assert.match(source, /보기 전용 참여자는 일정 순서를 변경할 수 없습니다\./, '직접 이벤트에서도 viewer 수정 차단');
 assert.match(worker, /if\(!canEdit\(member\)\)return json\(\{error:'보기 전용 여행은 수정할 수 없습니다\.'/,'서버 revision 업데이트 권한 유지');
 assert.match(sw, /url\.hostname === 'tile\.openstreetmap\.org'/, '기존 지도 타일 캐시 유지');
+assert.match(sw, /url\.pathname\.startsWith\('\/api\/map-tile\/'\)/, '프록시 지도 타일도 제한된 오프라인 캐시에 저장');
 
-console.log('71 route optimization integration checks passed');
+console.log('79 route optimization integration checks passed');

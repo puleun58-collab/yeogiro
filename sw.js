@@ -1,16 +1,16 @@
-const APP_CACHE = 'yeogiro-app-v55';
+const APP_CACHE = 'yeogiro-app-v56';
 const MAP_CACHE = 'yeogiro-map-v2';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/data-integrity.js?v=55',
-  '/expense-logic.js?v=55',
-  '/weather-logic.js?v=55',
-  '/sync.js?v=55',
-  '/sync-ui.js?v=55',
-  '/travel-logic.js?v=55',
-  '/pwa-update.js?v=55',
+  '/data-integrity.js?v=56',
+  '/expense-logic.js?v=56',
+  '/weather-logic.js?v=56',
+  '/sync.js?v=56',
+  '/sync-ui.js?v=56',
+  '/travel-logic.js?v=56',
+  '/pwa-update.js?v=56',
   '/offline.html',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v7.png',
@@ -72,6 +72,10 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/map-tile/')) {
+    event.respondWith(cacheFirst(request, MAP_CACHE));
+    return;
+  }
   if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {

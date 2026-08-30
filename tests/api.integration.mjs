@@ -260,6 +260,10 @@ try {
   assert.ok(koreanCity.data.timezone && koreanCity.data.fetchedAt, '현지 시간대와 기준 시각 제공');
   const homeCity = await api('/api/weather?city=' + encodeURIComponent('제주'));
   assert.equal(homeCity.data.timezone, 'Asia/Seoul', '동명 해외 도시가 아니라 실제 여행지 좌표를 사용');
+  const drivingRoute = await api('/api/route?profile=driving&fromLat=35.7901&fromLng=129.3321&toLat=35.8367&toLng=129.2838');
+  assert.equal(drivingRoute.response.status, 200, '자동차 경로를 Worker 경유로 조회');
+  assert.ok(drivingRoute.data.routes?.[0]?.distance > 0 && drivingRoute.data.routes[0].duration > 0, '자동차 경로 거리와 이동시간 제공');
+  assert.equal((await api('/api/route?profile=transit&fromLat=35.79&fromLng=129.33&toLat=35.83&toLng=129.28')).response.status, 400, '지원하지 않는 라우팅 프로필 차단');
 
   const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false } });
   await api(`/api/trips/${id}/invites/${revokedInvite.data.id}`, { method: 'DELETE', token: owner });
@@ -294,7 +298,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('69 API integration checks passed');
+  console.log('72 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
