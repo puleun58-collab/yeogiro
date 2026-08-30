@@ -17,12 +17,20 @@ assert.match(source, /\[\['summary','요약'\],\['list','지출'\],\['settlement
 assert.match(source, /budget==null\?'':`<div class="expense-progress"/, '예산을 설정하지 않으면 진행률을 표시하지 않음');
 assert.match(source, /예산을 \$\{money\(-remaining,base\)\} 초과했습니다\./, '예산 초과를 차단하지 않고 금액으로 안내');
 assert.match(source, /예산의 \$\{percent\}% 사용/, '예산 사용률을 보조 정보로 제공');
+assert.match(source, /expense-budget-action\.addline[\s\S]{0,180}margin:20px auto 0/, '예산 설정 버튼을 작게 만들고 금액 영역과 간격 확보');
+assert.match(source, /expense-budget-form \.field select,\.expense-budget-form \.field input\{height:56px;min-height:56px/, '기준 통화와 총 예산 입력 높이를 통일');
+assert.match(source, /expense-breakdown-row small\{display:block;margin-top:5px/, '참여자명과 결제·부담 정보를 분리해 표시');
+assert.match(source, /expense-breakdown-row>b\{min-width:68px;text-align:right/, '참여자 상세와 오른쪽 정산 금액 사이 간격 확보');
 
 // 지출 입력 흐름
 assert.match(source, /id="expenseForm"[\s\S]{0,400}amount-field[\s\S]{0,200}name="amount"/, '지출 입력에서 금액을 가장 먼저 노출');
 assert.match(source, /name="currency">\$\{currencies\}/, '통화는 지원 목록에서 선택');
 assert.match(source, /name="paidByMemberId" required/, '결제자를 필수로 선택');
 assert.match(source, /name="shareMemberIds"/, '분담 대상을 참여자별로 선택');
+assert.match(source, /function expenseParticipantName\(member,current='',payer=false\)/, '경비 화면에서 권한명이 아닌 참여자 이름을 표시');
+assert.match(source, /payer\?'나 \(여행 만든 사람\)':'나'/, '현재 소유자는 결제자와 분담자 문맥에 맞게 표시');
+assert.match(source, /genericGuest\|\|!raw\)return'동행자'/, '초대 경로 대신 동행자 문구 사용');
+assert.match(source, /x\.payerName\|\|x\.name/, '결제자 선택에는 나와 여행 만든 사람 관계를 함께 안내');
 assert.match(source, /선택한 참여자끼리 최소 통화 단위까지 균등하게 나눕니다\./, '균등 분할 정책을 명시');
 assert.match(source, /함께 부담할 사람을 한 명 이상 선택해 주세요\./, '분담자 없는 저장을 차단');
 assert.match(source, /카드번호 전체를 저장하지 마세요/, '메모에 민감정보 저장을 유도하지 않음');
@@ -125,7 +133,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=54'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=54'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=55'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=55'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
-console.log('92 expense and weather integration checks passed');
+console.log('100 expense and weather integration checks passed');
