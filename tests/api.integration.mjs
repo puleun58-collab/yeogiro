@@ -37,7 +37,7 @@ async function api(path, { method = 'GET', token = '', body, headers = {} } = {}
 }
 
 function trip(id) {
-  return { id, title: '통합 테스트 여행', start: '2026-08-22', end: '2026-08-24', note: '', cities: ['서울'], heroFileId: '', items: [{ id: `${id}_item`, day: '2026-08-22', time: '10:00', endTime: '11:15', preparationMinutes: 20, fixed: true, moveMinutes: 35, cat: '명소', name: '테스트 일정', place: '', mapUrl: '', memo: '', move: '도보', alarm: '', lat: null, lng: null, userDocs: [] }], flights: [], lodgings: [], files: [] };
+  return { id, title: '통합 테스트 여행', start: '2026-08-22', end: '2026-08-24', note: '', cities: ['서울'], heroFileId: '', checklist: [{ id: `${id}_prep`, title: '충전기', scope: 'shared', assigneeMemberId: '', completed: false, sortOrder: 0, important: false }], items: [{ id: `${id}_item`, day: '2026-08-22', time: '10:00', endTime: '11:15', preparationMinutes: 20, fixed: true, moveMinutes: 35, reminderMinutes: 30, cat: '명소', name: '테스트 일정', place: '', mapUrl: '', memo: '', move: '도보', alarm: '', lat: null, lng: null, userDocs: [] }], flights: [], lodgings: [], files: [] };
 }
 
 wrangler(['d1', 'migrations', 'apply', 'yeogiro-db', '--local', '--persist-to', persist]);
@@ -57,6 +57,8 @@ try {
   assert.equal(created.data.role, 'owner', 'owner 권한 정상');
   assert.deepEqual({ endTime: created.data.trip.items[0].endTime, preparationMinutes: created.data.trip.items[0].preparationMinutes }, { endTime: '11:15', preparationMinutes: 20 }, '일정 종료·준비시간 저장 및 조회');
   assert.deepEqual({ fixed: created.data.trip.items[0].fixed, moveMinutes: created.data.trip.items[0].moveMinutes }, { fixed: true, moveMinutes: 35 }, '고정 일정과 수동 이동시간 저장 및 조회');
+  assert.equal(created.data.trip.items[0].reminderMinutes, 30, '일정 알림 시점을 저장하고 조회');
+  assert.deepEqual(created.data.trip.checklist.map(x => x.title), ['충전기'], '여행 준비 체크리스트를 저장하고 조회');
   const owner = created.data.accessToken;
   assert.ok(created.data.sessionId, '여행 생성 시 기기 세션 발급');
   const createdActivity = await api(`/api/trips/${id}/activity`, { token: owner });

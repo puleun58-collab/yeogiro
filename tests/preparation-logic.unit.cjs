@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const p=require('../preparation-logic.js');
+const base={start:'2026-09-01',end:'2026-09-03',cities:['제주'],items:[],flights:[],lodgings:[],expenses:[],expenseSettings:{baseCurrency:'KRW',budgetMinor:null}};
+assert.equal(p.internationalTrip(base),false);
+assert.equal(p.internationalTrip({...base,cities:['다낭']}),true);
+assert.equal(p.internationalTrip({...base,cities:[]}),null);
+let domestic=p.template(base,(()=>{let i=0;return()=>String(++i)})());assert.equal(domestic.some(x=>x.title==='여권'),false);
+let foreign=p.template({...base,cities:['다낭']},(()=>{let i=0;return()=>String(++i)})());assert.equal(foreign.some(x=>x.title==='여권'),true);
+let items=[{id:'a',title:'여권',scope:'personal',important:true},{id:'b',title:'어댑터',scope:'shared',completed:true}];
+assert.deepEqual(p.progress(items,{a:true}),{done:2,total:2,percent:100});
+assert.deepEqual(p.progress(items,{}),{done:1,total:2,percent:50});
+let checks=p.checks(base);assert.equal(checks.find(x=>x.id==='dates').ok,true);assert.equal(checks.find(x=>x.id==='flights').optional,true);assert.equal(checks.find(x=>x.id==='cities').ok,true);
+let flight={id:'f',departDate:'2026-09-01',depart:'',from:'ICN',to:'DAD',userDocs:[]};checks=p.checks({...base,flights:[flight]});assert.match(checks.find(x=>x.id==='flight-f').label,/출발시간/);assert.ok(checks.find(x=>x.id==='flight-doc-f'));
+let lodging={id:'l',checkInDate:'2026-09-02',checkOutDate:'2026-09-01',address:'',userDocs:[]};checks=p.checks({...base,lodgings:[lodging]});assert.ok(checks.find(x=>x.id==='lodging-date-l'));assert.ok(checks.find(x=>x.id==='lodging-address-l'));
+let summary=p.summary(base,items,{a:true});assert.equal(summary.done,2);assert.equal(summary.documents,0);
+console.log('15 preparation logic checks passed');

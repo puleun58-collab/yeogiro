@@ -28,6 +28,7 @@ async function migrateLegacy(state){
   for(const trip of state.trips||[]){
     trip.files=Array.isArray(trip.files)?trip.files:[];
     trip.items=Array.isArray(trip.items)?trip.items:[];trip.flights=Array.isArray(trip.flights)?trip.flights:[];trip.lodgings=Array.isArray(trip.lodgings)?trip.lodgings:[];
+    if(!Array.isArray(trip.checklist)){trip.checklist=[];changed=true}
     if(!Array.isArray(trip.expenses)){trip.expenses=[];changed=true}
     if(!trip.expenseSettings||typeof trip.expenseSettings!=='object'){trip.expenseSettings={baseCurrency:'KRW',budgetMinor:null,settledAt:'',settlementFingerprint:''};changed=true}
     for(const item of trip.items){item.userDocs=Array.isArray(item.userDocs)?item.userDocs:[];item.reservationNumber=String(item.reservationNumber||'');item.provider=String(item.provider||'');if(typeof item.fixed!=='boolean'){item.fixed=false;changed=true}if(!Number.isInteger(item.moveMinutes)||item.moveMinutes<1||item.moveMinutes>1440)item.moveMinutes=null}

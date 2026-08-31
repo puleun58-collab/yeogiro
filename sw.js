@@ -1,16 +1,18 @@
-const APP_CACHE = 'yeogiro-app-v69';
+const APP_CACHE = 'yeogiro-app-v70';
 const MAP_CACHE = 'yeogiro-map-v3';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/data-integrity.js?v=69',
-  '/expense-logic.js?v=69',
-  '/weather-logic.js?v=69',
-  '/sync.js?v=69',
-  '/sync-ui.js?v=69',
-  '/travel-logic.js?v=69',
-  '/pwa-update.js?v=69',
+  '/data-integrity.js?v=70',
+  '/expense-logic.js?v=70',
+  '/weather-logic.js?v=70',
+  '/sync.js?v=70',
+  '/sync-ui.js?v=70',
+  '/travel-logic.js?v=70',
+  '/notification-logic.js?v=70',
+  '/preparation-logic.js?v=70',
+  '/pwa-update.js?v=70',
   '/offline.html',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v8.png',
@@ -96,4 +98,19 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('message', event => {
   if (event.data === 'SKIP_WAITING' || event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = event.action === 'directions'
+    ? event.notification.data?.directionsUrl
+    : event.notification.data?.url || '/';
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async windows => {
+    const app = windows.find(client => new URL(client.url).origin === self.location.origin);
+    if (app && !/^https?:\/\//.test(url)) {
+      await app.navigate(url);
+      return app.focus();
+    }
+    return clients.openWindow(url);
+  }));
 });

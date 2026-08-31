@@ -74,7 +74,7 @@ assert.match(source, /class="import-result-title"/, '분석 결과 제목에 전
 assert.match(source, /\.import-result>\.review-callout\{margin:0 0 16px\}/, '저장 전 확인과 첫 입력 필드 사이 간격 제공');
 const settingsSource = source.match(/function settings\(\)[\s\S]*?function searchResults/)?.[0] || '';
 assert.doesNotMatch(settingsSource, /editCurrent|changeBg/, '설정에서 홈과 중복되는 여행 편집·배경 사진 메뉴 제거');
-assert.match(settingsSource, /여행 관리[\s\S]*dataSafety[\s\S]*myShare[\s\S]*tripShare[\s\S]*collaborationLog[\s\S]*앱 기능[\s\S]*notify[\s\S]*allIcs[\s\S]*백업 및 복원[\s\S]*exportJson[\s\S]*importJson[\s\S]*앱 안내[\s\S]*초기화/, '설정 항목을 사용 목적과 우선순위에 따라 그룹화');
+assert.match(settingsSource, /여행 관리[\s\S]*dataSafety[\s\S]*myShare[\s\S]*tripShare[\s\S]*collaborationLog[\s\S]*앱 기능[\s\S]*notificationSettings[\s\S]*preparation[\s\S]*allIcs[\s\S]*백업 및 복원[\s\S]*exportJson[\s\S]*importJson[\s\S]*앱 안내[\s\S]*초기화/, '설정 항목을 사용 목적과 우선순위에 따라 그룹화');
 assert.match(settingsSource, /installed\?'':'<button id="installFromSettings"/, '설치된 앱에서는 중복 설치 메뉴를 숨김');
 assert.match(source, /async function backupExportPreviewSheet/, 'JSON 백업 전에 포함 내용을 확인');
 assert.match(source, /포함 원본[\s\S]*누락 원본[\s\S]*예상 용량/, '백업 전 원본 포함 수와 예상 용량 표시');
@@ -104,7 +104,7 @@ assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callo
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=69',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=70',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
