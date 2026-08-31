@@ -117,7 +117,7 @@ assert.match(source, /\.weather-hour\.current\{flex-basis:88px;min-width:88px\}/
 assert.match(source, /precipitation==null\?'':`<small class=\"weather-hour-rain\"/, '시간별 강수확률이 없으면 해당 줄을 숨김');
 assert.match(source, /날씨 정보를 불러오지 못했습니다\.<\/span><button class="addline" data-weather-retry>다시 시도/, '날씨 실패는 일정 화면과 분리해 재시도 제공');
 assert.match(source, /renderTravelGaps\(\);renderWeather\(\)\.catch\(\(\)=>\{\}\)/, '날씨 오류가 일정 렌더링을 막지 않음');
-assert.match(source, /<h2>지금 확인할 일정<\/h2>/, '당일 카드 제목을 자연스러운 행동 중심 문구로 표시');
+assert.match(source, /<h2>\$\{current\?'지금':'다음 일정을 준비하세요'\}<\/h2>/, '당일 카드 제목을 현재 상태 중심 문구로 표시');
 assert.match(source, /today-countdown[\s\S]*<small>다음 일정까지<\/small><strong>\${YeogiroTravel\.formatDuration\(remaining\)}<\/strong>/, '다음 일정까지 남은 시간을 두 번째 줄에 강조');
 assert.match(source, /details class="weather-hourly"/, '시간대별 예보는 접은 상태로 제공');
 assert.match(source, /nearestHourly\(hours,item\.time\)/, '일정 시간과 가장 가까운 예보를 연결');
@@ -125,7 +125,7 @@ assert.match(source, /weather-item-note">☂ 비 가능성/, '야외 일정에�
 assert.match(source, /role="img" aria-label="\${esc\(currentCode\.label\)}"[\s\S]*weather-condition/, '날씨를 접근 가능한 아이콘과 글자로 함께 전달');
 assert.match(source, /tripPhase\(t,today\)==='after'\)\{node\.remove\(\)/, '종료된 여행에서는 날씨 카드를 노출하지 않음');
 assert.match(source, /needsRefresh\(cached,\{now:Date\.now\(\),maxAgeMs:30\*60\*1000,today:iso\(new Date\(\)\)\}\)/, '같은 위치의 반복 호출을 캐시로 차단하되 하루가 지나면 다시 조회');
-assert.match(source, /setInterval\(\(\)=>refreshForNewDay\(\),60000\)/, '앱을 켜 둔 상태에서도 날짜가 바뀌면 예보를 다시 불러옴');
+assert.match(source, /setInterval\(\(\)=>\{if\(refreshForNewDay\(\)\)return;[\s\S]{0,240}renderSchedule\(\)/, '앱을 켜 둔 상태에서도 매분 현재·다음 일정을 재평가');
 assert.match(source, /visibilitychange[\s\S]{0,160}refreshForNewDay\(\)\)renderWeather/, '앱으로 돌아올 때 날씨를 갱신');
 assert.match(source, /function pruneWeatherCache\(\)/, '지난 날짜만 담긴 저장 예보는 정리');
 assert.match(source, /setupPwa\(\);pruneWeatherCache\(\);render\(\)/, '시작할 때 오래된 예보 캐시를 정리');

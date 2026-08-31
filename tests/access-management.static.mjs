@@ -81,7 +81,7 @@ assert.match(source, /포함 원본[\s\S]*누락 원본[\s\S]*예상 용량/, '�
 assert.match(source, /async function resetProtectionSheet/, '전체 초기화 전에 동기화·원본·최근 백업 상태 확인');
 assert.doesNotMatch(settingsSource, /전체 초기화 \(두 번 탭\)/, '초기화 메뉴가 이전의 이중 탭 안내를 노출하지 않음');
 assert.match(source, /if\(b\.dataset\.confirmReset!==undefined\)\{[^}]*state=sample\(\)[^}]*YeogiroStore\.persist/, '보호 화면에서 확인한 경우에만 전체 초기화');
-assert.match(source, /phase==='after'[\s\S]*allDocuments\(\)\.length[\s\S]*지난 일정 보기[\s\S]*예약 서류 확인/, '여행 종료 화면은 지난 일정과 존재하는 예약 서류에 집중');
+assert.match(source, /phase==='after'[\s\S]*allDocuments\(\)\.length[\s\S]*여행 기록 보기[\s\S]*예약 서류 확인/, '여행 종료 화면은 여행 기록과 존재하는 예약 서류에 집중');
 assert.doesNotMatch(source, /data-after-trip="backup"/, '여행 종료 카드에서 중복 JSON 백업 진입점 제거');
 assert.match(settingsSource, /id="exportJson"[^>]*>⬇️ JSON 내보내기/, 'JSON 백업 기능은 설정의 백업 및 복원에서 유지');
 assert.match(source, /function previewFlightGroup/, '여러 항공편 분석 결과를 구간별로 확인');

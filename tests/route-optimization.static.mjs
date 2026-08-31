@@ -8,7 +8,7 @@ const travel = readFileSync('travel-logic.js', 'utf8');
 const migration = readFileSync('migrations/0011_item_route_controls.sql', 'utf8');
 const sw = readFileSync('sw.js', 'utf8');
 
-assert.match(source, /data-page="overview"[^>]*>동선</, '기존 오버뷰 탭을 동선 화면으로 재사용');
+assert.match(source, /data-page="overview"[^>]*>이동</, '기존 오버뷰를 직관적인 이동 탭으로 재사용');
 assert.match(source, /id="map"[\s\S]{0,300}routeSvg[\s\S]{0,200}mapMarks/, '하루 전체 지도와 경로 레이어 제공');
 assert.match(source, /function dayRouteStops\(\)/, '선택 날짜의 지도 정류장을 한 곳에서 구성');
 assert.match(source, /type:'item'/, '일정 정류장 포함');
@@ -50,7 +50,7 @@ assert.match(source, /Number\.isInteger\(b\.moveMinutes\)/, '수동값이 자동
 assert.match(source, /manual:true/, '수동 이동시간 표시 상태 보존');
 assert.match(source, /name="fixed"/, '고정 일정 설정 제공');
 assert.match(source, /<span>시간 세부 설정<\/span>/, '고정 일정 선택을 기본 날짜 입력에서 세부 설정으로 이동');
-assert.match(source, /시간 변경이 어려운 일정[\s\S]{0,80}동선 추천에서 이 시간을 보호/, '고정 일정이 필요한 이유를 사용자 언어로 안내');
+assert.match(source, /시간 변경이 어려운 일정[\s\S]{0,100}이동 경로 추천에서 이 시간을 보호/, '고정 일정이 필요한 이유를 사용자 언어로 안내');
 assert.match(source, /draft\.fixed=fd\.get\('fixed'\)==='on'/, '고정 여부를 여행 데이터에 저장');
 assert.match(source, /고정 일정이나 종료시간이 있는 일정은 시간을 직접 편집/, '고정·종료시간 일정의 간편 재배치 차단');
 
@@ -103,8 +103,8 @@ assert.match(source, /route-summary>span\{display:grid[\s\S]{0,100}gap:5px/, '�
 assert.match(source, /#map\{height:34vh;min-height:280px;max-height:350px\}/, '모바일 지도 높이를 축소해 일정 정보를 먼저 노출');
 assert.match(source, /\.map-frame\.expanded #map\{height:72vh/, '필요할 때만 지도를 크게 확장');
 assert.match(source, /id="mapExpand"[^>]*>지도 크게 보기</, '지도 크게 보기 진입 제공');
-assert.match(source, /\.route-summary\{order:2\}[\s\S]{0,90}\.map-frame\{order:4/, '동선 요약과 현재·다음 일정을 지도보다 먼저 배치');
-assert.match(source, /route-summary-title">오늘 동선</, '하루 이동 규모를 지도 상단에서 요약');
+assert.match(source, /\.route-summary\{order:2\}[\s\S]{0,90}\.map-frame\{order:4/, '이동 요약과 현재·다음 일정을 지도보다 먼저 배치');
+assert.match(source, /route-summary-title">오늘 이동/, '하루 이동 규모를 지도 상단에서 요약');
 assert.match(source, /modes\.length===1\?`\$\{modes\[0\]\} 이동 기준`/, '요약에 이동수단 기준 표시');
 assert.match(source, /label\.textContent=`\$\{index\+1\} · \$\{list\[index\]\.name\}`/, '선택된 마커에서만 장소명을 노출');
 assert.match(source, /closest\('\[data-pin\]'\)[\s\S]{0,240}moveJourneyTo\(index\)[\s\S]{0,90}focusRouteSelection\(index,true\)/, '마커 선택 시 해당 일정 카드로 연동');
