@@ -2,9 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-const renderer = source.match(/function tripForm\(t\)[\s\S]*?\nfunction tripsSheet/)?.[0] || '';
-const submitHandler = source.match(/addEventListener\('submit',async e=>\{[\s\S]*?토스트\)|addEventListener\('submit',async e=>\{[\s\S]*?render\(\);toast\('여행을 저장했습니다\.'\)\}\);/)?.[0]
-  || source.match(/addEventListener\('submit',async e=>\{[\s\S]*?toast\('여행을 저장했습니다\.'\)\}\);/)?.[0] || '';
+const renderer = source.match(/function tripForm\(t,titleOverride\)[\s\S]*?\nfunction tripsSheet/)?.[0] || '';
+const submitHandler = source.match(/addEventListener\('submit',async e=>\{[\s\S]*?toast\(!firstTrip\?'여행을 저장했습니다\.':t\.cities\.length\?'여행을 만들었습니다\. 첫 일정을 추가해 보세요\.':'여행을 만들었습니다\. 방문 도시를 먼저 추가해 주세요\.'\)\}\);/)?.[0] || '';
 
 assert.match(renderer, /name="title"/, '제목 입력 필드 유지');
 assert.match(renderer, /name="start"/, '시작일 입력 필드 유지');
