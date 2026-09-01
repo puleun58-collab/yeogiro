@@ -60,6 +60,13 @@ assert.deepEqual(travel.terminalInfo('North'), { text: 'North', label: '터미�
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-21'), 'before');
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-23'), 'during');
 assert.equal(travel.tripPhase({ start: '2026-08-22', end: '2026-08-24' }, '2026-08-25'), 'after');
+const statusTrip = { start: '2026-11-19', end: '2026-11-22' };
+assert.equal(travel.tripStatusLabel(statusTrip, '2026-09-01'), 'D-79', '79일 전 전역 상태');
+assert.equal(travel.tripStatusLabel(statusTrip, '2026-11-12'), 'D-7', '7일 전 전역 상태');
+assert.equal(travel.tripStatusLabel(statusTrip, '2026-11-18'), 'D-1', '출발 전날 전역 상태');
+assert.equal(travel.tripStatusLabel(statusTrip, '2026-11-19'), '오늘 출발', '출발 당일 전역 상태');
+assert.equal(travel.tripStatusLabel(statusTrip, '2026-11-20'), '여행 2일차', '여행 시작 후 일차 상태');
+assert.equal(travel.tripStatusLabel(statusTrip, '2026-11-23'), '여행 종료', '여행 종료 후 상태');
 
 const routeStops = [
   { id: 'hotel', type: 'lodging', lat: 16, lng: 108 },
@@ -136,4 +143,4 @@ assert.equal(travel.preferredTripId([
   { id: 'valid', start: '2026-09-05', end: '2026-09-07' }
 ], '2026-09-01'), 'valid', 'id 또는 시작일과 종료일이 없는 항목을 무시');
 
-console.log('40 travel logic checks passed');
+console.log('46 travel logic checks passed');

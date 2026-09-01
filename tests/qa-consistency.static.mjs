@@ -64,11 +64,11 @@ assert.match(css, /\.trip-focus\{margin-bottom:var\(--section-space\)\}/, '홈 �
 // status icon placement: copy -> status -> chevron, no left-side status icons (spec section 11)
 const prepFn = source.match(/function preparationSheet\(\)[\s\S]*?\nfunction notificationPrefs/)?.[0] || '';
 assert.match(prepFn, /checkRow=\(x,state\)=>`<button class="prep-check \$\{state\}"[\s\S]{0,220}?<span class="prep-check-copy">/, '자동 점검 행은 제목이 먼저 배치됨');
-assert.match(prepFn, /state==='required'\?'<span class="prep-state" aria-hidden="true">!<\/span>':state==='complete'\?'<span class="prep-state" aria-hidden="true">✓<\/span>':''/, '상태 아이콘은 제목 오른쪽에서 required/complete만 표시');
-assert.doesNotMatch(prepFn, /<span class="prep-state" aria-hidden="true">\$\{state/, '왼쪽 상태 아이콘 제거');
+assert.match(prepFn, /<span class="prep-state \$\{state\}" aria-hidden="true">\$\{state==='required'\?'!':state==='complete'\?'✓':''\}<\/span>/, 'required/complete만 오른쪽 상태 기호를 표시');
+assert.match(prepFn, /prep-check-copy[\s\S]{0,260}?prep-state[\s\S]{0,180}?prep-chevron/, '자동 점검 행이 제목·상태·chevron 순서를 유지');
 assert.doesNotMatch(prepFn, /선택 사항, /, '선택 사항 행에는 상태 라벨을 붙이지 않음');
 assert.match(prepFn, /aria-label="\$\{esc\(x\.title\)\}\$\{state==='required'\?', 확인 필요':state==='complete'\?', 완료':''\}/, '상태를 스크린리더 라벨로도 제공');
-assert.match(css, /\.prep-check\{display:grid;grid-template-columns:minmax\(0,1fr\) auto auto/, '자동 점검 행 그리드가 제목·상태·chevron 순서');
+assert.match(css, /\.prep-check\{grid-template-columns:minmax\(0,1fr\) 20px 20px/, '자동 점검 행의 상태·chevron 고정 폭 확보');
 assert.match(css, /\.prep-disclosure\[open\]>summary>span\[aria-hidden\]\{transform:rotate\(90deg\)\}/, '펼침 상태에서 chevron 방향 전환');
 
 // touch targets stay >=44px even after compaction (spec sections 9, 22)
@@ -82,5 +82,6 @@ for (const placeholder of [...source.matchAll(/placeholder="([^"]+)"/g)].map(x =
 
 // zero-value rows never render (spec sections 20, 29)
 assert.doesNotMatch(source, /예보 없음|연결 서류 없음|등록된 경비 없음|아직 등록된 여행 정보가 없습니다/, '0값 자리표시자 제거');
+assert.doesNotMatch(prepFn, /prep-weather|data-close>닫기/, '준비 시트의 날씨와 하단 닫기 중복 제거');
 
-console.log('49 QA consistency checks passed');
+console.log('50 QA consistency checks passed');

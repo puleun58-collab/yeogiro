@@ -181,6 +181,17 @@
     return 'during';
   }
 
+  function tripStatusLabel(trip, today) {
+    const phase = tripPhase(trip, today);
+    if (phase === 'before') {
+      const days = Math.max(1, Math.round((new Date(`${trip.start}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000));
+      return `D-${days}`;
+    }
+    if (phase === 'after') return '여행 종료';
+    const day = Math.floor((new Date(`${today}T00:00:00`) - new Date(`${trip.start}T00:00:00`)) / 86400000) + 1;
+    return day === 1 ? '오늘 출발' : `여행 ${day}일차`;
+  }
+
   function preferredTripId(trips, today) {
     const list = (trips || []).filter(trip => trip && trip.id && trip.start && trip.end);
     if (!list.length) return '';
@@ -206,5 +217,5 @@
       : { text: '', label: '' };
   }
 
-  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, routeSummary, routeSuggestion, routeWarning, tripPhase, preferredTripId, flightDayDelta, terminalInfo };
+  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, routeSummary, routeSuggestion, routeWarning, tripPhase, tripStatusLabel, preferredTripId, flightDayDelta, terminalInfo };
 });
