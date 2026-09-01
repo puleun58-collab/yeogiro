@@ -35,4 +35,8 @@ assert.match(source, /\$\('#prepAdd input'\)\?\.focus\(\)/, '연속 입력을 �
 assert.match(source, /\.prep-sheet-header\{position:sticky/, '여행 준비 헤더가 스크롤 중 고정');
 assert.match(source, /\.prep-sheet-close\{[^}]*width:44px;height:44px/, '상단 닫기 버튼 44px 터치 영역 확보');
 assert.match(source, /grid-template-columns:minmax\(0,1fr\) 64px 42px/, '입력창 우선 compact 단일 행 레이아웃');
-console.log('32 preparation UI checks passed');
+assert.match(source, /savePrepPersonal\(personal\)\}else if\(canEdit\)\{item\.completed=b\.checked;save\(\)\}renderSchedule\(\);preparationSheet\(\)/, '준비물 완료 토글이 홈 카드까지 다시 계산');
+assert.match(source, /trip\(\)\.checklist=items\.filter\(x=>x\.id!==item\.id\);save\(\);renderSchedule\(\);preparationSheet\(\)/, '준비물 삭제가 홈 카드까지 다시 계산');
+assert.match(source, /prepAddScope=scope;save\(\);renderSchedule\(\);preparationSheet\(\)/, '준비물 추가가 홈 카드까지 다시 계산');
+assert.match(source, /function preparationSheet\(\)\{let keepScroll=\$\('\.prep-sheet-header'\)\?\$\('\.sheet'\)\.scrollTop:0/, '시트 재렌더에서 읽던 위치 유지');
+console.log('36 preparation UI checks passed');
