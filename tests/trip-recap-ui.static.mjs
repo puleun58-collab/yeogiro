@@ -4,12 +4,13 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 // script registration
-assert.match(source, /trip-recap-logic\.js\?v=74/, 'trip recap logic script registered with current version');
+assert.match(source, /trip-recap-logic\.js\?v=75/, 'trip recap logic script registered with current version');
 
 // completion card wiring (previously a dead button)
 assert.match(source, /b\.dataset\.afterTrip==='schedule'\)tripRecapSheet\(trip\(\)\)/, '여행 완료 카드의 기록 보기 버튼이 recap 시트에 연결됨');
 assert.match(source, /b\.dataset\.afterTrip==='docs'\)documentCabinet\(\)/, '여행 완료 카드의 예약 서류 버튼이 서류함에 연결됨');
-assert.match(source, /class="card trip-complete">.*여행 완료.*data-after-trip="schedule">여행 기록 보기/, '여행 종료 후 오늘 카드가 진행형 요소 대신 완료 화면으로 전환됨');
+assert.match(source, /class="card today-empty home-card"><small class="today-eyebrow">여행 완료<\/small>.*data-after-trip="schedule">여행 기록 보기/, '여행 종료 후 홈이 진행형 요소 대신 완료 화면으로 전환됨');
+assert.doesNotMatch(source, /class="card trip-complete"/, '완료 카드가 공통 홈 카드 스타일을 사용');
 
 // recap sheet composition and ordering
 const recapFn = source.match(/function tripRecapSheet\(t=trip\(\)\)[\s\S]*?\nfunction similarTripSheet/)?.[0] || '';
@@ -43,4 +44,4 @@ assert.match(similarFn, /includeChecklist/, '체크리스트 포함 여부 선�
 assert.match(similarFn, /예약번호, 항공편, 숙소, 예약서류, 경비는 복사하지 않습니다/, '민감정보 미복제 안내');
 assert.match(source, /YeogiroRecap\.duplicateTrip\(\{source,newId:uid\(\),newTitle:title,newStart:start,newEnd:end/, '복제 제출 시 recap 로직으로 새 여행 생성');
 
-console.log('22 trip recap UI checks passed');
+console.log('23 trip recap UI checks passed');

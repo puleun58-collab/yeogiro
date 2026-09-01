@@ -181,6 +181,17 @@
     return 'during';
   }
 
+  function preferredTripId(trips, today) {
+    const list = (trips || []).filter(trip => trip && trip.id && trip.start && trip.end);
+    if (!list.length) return '';
+    const byPhase = phase => list.filter(trip => tripPhase(trip, today) === phase);
+    const during = byPhase('during').sort((a, b) => a.start.localeCompare(b.start));
+    if (during.length) return during[0].id;
+    const upcoming = byPhase('before').sort((a, b) => a.start.localeCompare(b.start));
+    if (upcoming.length) return upcoming[0].id;
+    return [...list].sort((a, b) => b.end.localeCompare(a.end))[0].id;
+  }
+
   function flightDayDelta(departDate, arriveDate) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(departDate || '') || !/^\d{4}-\d{2}-\d{2}$/.test(arriveDate || '')) return 0;
     return Math.max(0, Math.round((new Date(`${arriveDate}T00:00:00`) - new Date(`${departDate}T00:00:00`)) / 86400000));
@@ -195,5 +206,5 @@
       : { text: '', label: '' };
   }
 
-  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, routeSummary, routeSuggestion, routeWarning, tripPhase, flightDayDelta, terminalInfo };
+  return { timeMinutes, formatClock, formatDuration, categoryDuration, scheduleState, moveProfile, routeBase, geoDistance, fallbackLeg, assessGap, routeSummary, routeSuggestion, routeWarning, tripPhase, preferredTripId, flightDayDelta, terminalInfo };
 });

@@ -113,4 +113,27 @@ assert.equal(travel.routeWarning(
   { durationMinutes: 20 }
 ).level, 'reference', 'missing end time is a reference note rather than a strong warning');
 
-console.log('35 travel logic checks passed');
+const preferredTrips = [
+  { id: 'past', start: '2026-08-01', end: '2026-08-03' },
+  { id: 'upcoming', start: '2026-09-10', end: '2026-09-12' },
+  { id: 'during-later', start: '2026-08-31', end: '2026-09-03' },
+  { id: 'during-earlier', start: '2026-08-30', end: '2026-09-02' }
+];
+assert.equal(travel.preferredTripId(preferredTrips, '2026-09-01'), 'during-earlier', '진행 중인 여행이 예정 여행보다 우선하고 시작일이 가장 이른 여행을 선택');
+assert.equal(travel.preferredTripId([
+  { id: 'later', start: '2026-10-10', end: '2026-10-12' },
+  { id: 'nearer', start: '2026-09-10', end: '2026-09-12' }
+], '2026-09-01'), 'nearer', '진행 중인 여행이 없으면 가장 가까운 예정 여행을 선택');
+assert.equal(travel.preferredTripId([
+  { id: 'older', start: '2026-07-01', end: '2026-07-04' },
+  { id: 'recent', start: '2026-08-20', end: '2026-08-25' }
+], '2026-09-01'), 'recent', '모든 여행이 끝났으면 가장 최근에 끝난 여행을 선택');
+assert.equal(travel.preferredTripId([], '2026-09-01'), '', '여행 목록이 비어 있으면 빈 문자열을 반환');
+assert.equal(travel.preferredTripId([
+  { start: '2026-09-01', end: '2026-09-02' },
+  { id: 'missing-start', end: '2026-09-02' },
+  { id: 'missing-end', start: '2026-09-01' },
+  { id: 'valid', start: '2026-09-05', end: '2026-09-07' }
+], '2026-09-01'), 'valid', 'id 또는 시작일과 종료일이 없는 항목을 무시');
+
+console.log('40 travel logic checks passed');

@@ -42,7 +42,7 @@ assert.doesNotMatch(source, /정산과 예산은 이 통화로 계산합니다/,
 assert.match(source, /기준 통화<\/label><select name="baseCurrency">\$\{options\}<\/select><\/div>/, '기준 통화는 선택만 남김');
 assert.match(source, /picked\?\(per\?`1인 약 \$\{per\}`:''\)/, '금액을 입력했을 때만 1인 부담액 안내');
 assert.match(source, /class="share-chips" id="shareChips"/, '분담자를 큰 상자 대신 한 줄 칩으로 선택');
-assert.match(source, /share-chip\{position:relative[\s\S]{0,140}border-radius:999px/, '분담자 칩은 화면을 적게 차지하는 알약 형태');
+assert.match(source, /share-chip\{position:relative[\s\S]{0,140}border-radius:var\(--radius-pill\)/, '분담자 칩은 화면을 적게 차지하는 알약 형태');
 assert.match(source, /data-share-all>모두 선택/, '참여자가 여러 명이면 한 번에 선택하거나 해제');
 assert.match(source, /1인 약 \$\{per\}/, '선택 인원 기준 1인 부담액을 즉시 미리 보여줌');
 assert.match(source, /날짜<\/label>[\s\S]{0,220}결제한 사람/, '금액과 항목 정보를 먼저 입력하고 정산 대상은 아래에 배치');
@@ -170,7 +170,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=74'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=74'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=75'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=75'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
 console.log('137 expense and weather integration checks passed');

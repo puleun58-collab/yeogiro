@@ -12,7 +12,8 @@ assert.match(renderer, /data-prep-action=.*prep-chevron/, '행 전체 바로가�
 assert.match(renderer, /선택 사항 \$\{optional\.length\}건/, '선택 사항 기본 접힘');
 assert.match(renderer, /완료 \$\{done\.length\}건/, '완료 항목 기본 접힘');
 assert.match(renderer, /summary\.flights\?/, '0건 항공편 요약 숨김');
-assert.match(renderer, /아직 등록된 여행 정보가 없습니다/, '빈 요약 상태 제공');
+assert.doesNotMatch(renderer, /아직 등록된 여행 정보가 없습니다/, '빈 여행 요약 placeholder 제거');
+assert.match(renderer, /metrics\.length\?`<section class="prep-section">[\s\S]*?<h3>출발 전 요약<\/h3>[\s\S]*?prep-summary-line[\s\S]*?<\/section>`:''/, '실제 여행 정보가 있을 때만 출발 전 요약 표시');
 assert.match(renderer, /role="progressbar"/, '준비 진행률 접근성 제공');
 assert.match(renderer, /prep-menu-actions/, '정렬과 삭제를 overflow 메뉴로 이동');
 assert.doesNotMatch(renderer, /prep-state[^<]*\">! 확인 필요/, '행마다 확인 필요 문구를 반복하지 않음');
@@ -29,4 +30,4 @@ assert.match(renderer, /enterkeyhint="done"/, '모바일 키보드 완료 힌트
 assert.match(source, /\$\('#prepAdd input'\)\?\.focus\(\)/, '연속 입력을 위해 추가 후 포커스 복원');
 assert.match(source, /\.prep-section\+\.addline\{margin-top:20px\}/, '날씨 요약과 닫기 버튼 사이 간격 확보');
 assert.match(source, /grid-template-columns:minmax\(0,1fr\) 74px 42px/, '입력창 우선 단일 행 레이아웃');
-console.log('25 preparation UI checks passed');
+console.log('26 preparation UI checks passed');
