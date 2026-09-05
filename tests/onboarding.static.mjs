@@ -49,7 +49,7 @@ assert.doesNotMatch(source, /onboarding:\(\)=>onboardingSheet\(0\)/, '일반 dat
 for (const heading of ['여행 시작하기', '함께 사용하기', '여행 준비하기', '여행 중 사용하기', '여행이 끝난 뒤']) {
   assert.ok(source.includes(heading), `사용법 화면에 "${heading}" 단계 섹션 존재`);
 }
-assert.match(source, /data-open="deviceLinkHelp">🔗 새 기기 연결 방법/, '사용법에서 새 기기 연결 도움말로 바로 연결됨');
+assert.match(source, /data-open="deviceLinkHelp">(?:<img[^>]*>)?새 기기 연결 방법/, '사용법에서 새 기기 연결 도움말로 바로 연결됨');
 
 // device link explanation clarifies it is not a new-participant invite
 assert.match(source, /새 참여자를 초대하는 기능이 아니라, 같은 사용자가 다른 기기에서 이 여행에 연결하는 기능입니다\./g, '새 기기 연결 설명 문구 존재');

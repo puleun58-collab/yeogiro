@@ -66,9 +66,9 @@ assert.match(worker, /DELETE FROM trip_trash WHERE trip_id=\? AND restored_at IS
 assert.match(worker, /휴지통 \$\{purged\}개 영구 삭제/, '휴지통 비우기도 기록에 남김');
 assert.match(worker, /t\.deleted_by_member_id AS member_id/, '휴지통 항목의 삭제자 식별자 제공');
 assert.doesNotMatch(source, /dataset\.transferOwner\)\{if\(!confirm|dataset\.revokeMember\)\{if\(!confirm|dataset\.revokeSession\)\{[^}]*confirm/, '공유·기기 위험 작업에서 브라우저 확인창 제거');
-assert.match(source, /id="myShare"[^>]*>👤 내 정보/, '설정 메뉴에서 내 정보 명칭 사용');
-assert.match(source, /id="tripShare"[^>]*>🔗 공유 및 권한/, '설정 메뉴에서 공유 및 권한 명칭 사용');
-assert.match(source, /id="collaborationLog"[^>]*>🕘 기록 및 복구/, '설정에서 기록 및 복구 접근');
+assert.match(source, /id="myShare"[^>]*>(?:<img[^>]*>)?내 정보/, '설정 메뉴에서 내 정보 명칭 사용');
+assert.match(source, /id="tripShare"[^>]*>(?:<img[^>]*>)?공유 및 권한/, '설정 메뉴에서 공유 및 권한 명칭 사용');
+assert.match(source, /id="collaborationLog"[^>]*>(?:<img[^>]*>)?기록 및 복구/, '설정에서 기록 및 복구 접근');
 assert.match(source, /function collaborationSheet/, '기록 및 복구 모바일 관리 화면 제공');
 assert.match(source, /<h2>기록 및 복구<\/h2>[\s\S]*<h3>휴지통<\/h3>[\s\S]*<h3>최근 변경<\/h3>/, '휴지통을 최근 변경보다 먼저 표시');
 assert.match(source, /function primaryActivity[\s\S]*type==='file'&&action==='updated'[\s\S]*heroFileId/, '내부 대표사진과 파일 메타데이터 기록을 기본 목록에서 제외');
@@ -96,11 +96,11 @@ assert.doesNotMatch(settingsSource, /전체 초기화 \(두 번 탭\)/, '초기�
 assert.match(source, /if\(b\.dataset\.confirmReset!==undefined\)\{[^}]*state=sample\(\)[^}]*YeogiroStore\.persist/, '보호 화면에서 확인한 경우에만 전체 초기화');
 assert.match(source, /phase==='after'[\s\S]*allDocuments\(\)\.length[\s\S]*여행 기록 보기[\s\S]*예약 서류 확인/, '여행 종료 화면은 여행 기록과 존재하는 예약 서류에 집중');
 assert.doesNotMatch(source, /data-after-trip="backup"/, '여행 종료 카드에서 중복 JSON 백업 진입점 제거');
-assert.match(settingsSource, /id="exportJson"[^>]*>⬇️ JSON 내보내기/, 'JSON 백업 기능은 설정의 백업 및 복원에서 유지');
+assert.match(settingsSource, /id="exportJson"[^>]*>(?:<img[^>]*>)?JSON 내보내기/, 'JSON 백업 기능은 설정의 백업 및 복원에서 유지');
 assert.match(source, /function previewFlightGroup/, '여러 항공편 분석 결과를 구간별로 확인');
 assert.match(source, /function confirmFlightGroupImport/, '여러 항공편을 별도 데이터로 저장');
 assert.match(source, /#analyzeDoc,#confirmImport,#confirmFlightGroup[^}]*width:100%[^}]*min-height:48px[^}]*border-radius:var\(--radius-control\)/, '여러 항공편 저장 버튼을 자동입력 공통 규격에 포함');
-assert.match(source, /id="dataSafety">🗄️ 데이터 보관 상태/, '설정에서 데이터 보관 상태에 접근');
+assert.match(source, /id="dataSafety">(?:<img[^>]*>)?데이터 보관 상태/, '설정에서 데이터 보관 상태에 접근');
 assert.match(source, /async function dataSafetySheet/, '동기화·원본·복구·백업 상태 화면 제공');
 assert.match(source, /파일 원본[\s\S]*'저장 공간'/, '보관 상태에서 전체 원본과 브라우저 저장 공간을 함께 표시');
 assert.match(source, /1073741824[\s\S]*GB/, '큰 저장공간 용량은 GB 단위로 읽기 쉽게 표시');
@@ -119,7 +119,7 @@ assert.match(source, /class="danger-action" data-confirm-reset[^>]*>백업 없�
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=80',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=81',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');

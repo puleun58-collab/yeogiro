@@ -84,8 +84,7 @@ assert.match(source, /document\.body\.style\.overflow='hidden'/, '모달을 열�
 assert.match(source, /if\(e\.key!=='Tab'\)return;[\s\S]{0,400}focusable\[focusable\.length-1\]/, 'Tab focus trap 적용'); check();
 assert.match(source, /e\.target===overlay\)\{e\.preventDefault\(\);e\.stopImmediatePropagation\(\);closeInstallGuide\(\)\}/, 'backdrop 클릭으로 닫기'); check();
 
-// ---- 진입점과 업데이트 안내 분리 ----
-assert.match(source, /<button id="installFromSettings">📲 홈 화면에 추가<\/button>/, '설정에서 직접 설치 안내를 열 수 있음'); check();
+assert.match(source, /<button id="installFromSettings">(?:<img[^>]*>)?홈 화면에 추가<\/button>/, '설정에서 직접 설치 안내를 열 수 있음'); check();
 assert.match(source, /if\(b\.id==='installFromSettings'\)\{closeSheet\(\);await installApp\(\);return\}/, '설정 진입점은 install prompt를 우선 사용'); check();
 assert.equal(source.includes('function installHelp'), false, '이전 설치 안내 시트는 제거'); check();
 assert.match(source, /function appUpdateSheet\(registration=pwaRegistration\)/, '업데이트 안내는 별도 화면으로 유지'); check();
