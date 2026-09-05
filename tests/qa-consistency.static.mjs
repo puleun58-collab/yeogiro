@@ -68,7 +68,12 @@ assert.match(prepFn, /<span class="prep-state \$\{state\}" aria-hidden="true">\$
 assert.match(prepFn, /prep-check-copy[\s\S]{0,260}?prep-state[\s\S]{0,180}?prep-chevron/, '자동 점검 행이 제목·상태·chevron 순서를 유지');
 assert.doesNotMatch(prepFn, /선택 사항, /, '선택 사항 행에는 상태 라벨을 붙이지 않음');
 assert.match(prepFn, /aria-label="\$\{esc\(x\.title\)\}\$\{state==='required'\?', 확인 필요':state==='complete'\?', 완료':''\}/, '상태를 스크린리더 라벨로도 제공');
-assert.match(css, /\.prep-check\{grid-template-columns:minmax\(0,1fr\) 20px 20px/, '자동 점검 행의 상태·chevron 고정 폭 확보');
+assert.match(css, /\.prep-check\{grid-template-columns:minmax\(0,1fr\) 30px 18px/, '자동 점검 행의 상태·chevron 고정 폭 확보');
+assert.match(css, /\.prep-state\{display:grid;width:30px;min-width:30px;height:30px;place-items:center;border-radius:50%/, '상태 아이콘을 동일 규격 배지로 표시');
+assert.match(css, /\.prep-state\.required,\.prep-check\.required \.prep-state\{background:var\(--caution-soft\);color:var\(--caution\)/, '확인 필요 배지는 warning 토큰 사용');
+assert.match(css, /\.prep-state\.complete,\.prep-check\.complete \.prep-state\{background:var\(--success-soft\);color:var\(--success\)/, '완료 배지는 success 토큰 사용');
+assert.match(css, /\.prep-chevron\{width:18px;padding:0;color:var\(--muted\)/, 'chevron은 neutral 색과 고정 폭 유지');
+assert.match(css, /\.prep-check\.required\{min-height:54px;border:1px solid var\(--line\);background:var\(--surface-muted\)\}/, '확인 필요 카드 테두리는 neutral로 완화');
 assert.match(css, /\.prep-disclosure\[open\]>summary>span\[aria-hidden\]\{transform:rotate\(90deg\)\}/, '펼침 상태에서 chevron 방향 전환');
 
 // touch targets stay >=44px even after compaction (spec sections 9, 22)
@@ -84,4 +89,4 @@ for (const placeholder of [...source.matchAll(/placeholder="([^"]+)"/g)].map(x =
 assert.doesNotMatch(source, /예보 없음|연결 서류 없음|등록된 경비 없음|아직 등록된 여행 정보가 없습니다/, '0값 자리표시자 제거');
 assert.doesNotMatch(prepFn, /prep-weather|data-close>닫기/, '준비 시트의 날씨와 하단 닫기 중복 제거');
 
-console.log('50 QA consistency checks passed');
+console.log('55 QA consistency checks passed');
