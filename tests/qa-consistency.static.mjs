@@ -51,7 +51,7 @@ for (const [selector, size] of [['.sheet h2', '26px'], ['.today-head h2', '24px'
   assert.doesNotMatch(css, new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\{[^}]*font-size:${size}`), `${selector} 원시 글자 크기 제거`);
 
 // status colors come from tokens, never ad-hoc hex (spec section 12)
-for (const token of ['--warning', '--caution', '--success', '--danger-soft'])
+for (const token of ['--warning', '--caution', '--prep-warning-badge', '--success', '--danger-soft'])
   assert.match(css, new RegExp(`${token}:`), `${token} 상태 토큰 정의`);
 for (const hex of ['#a23f2d', '#a33d29', '#c54e34', '#b33;', '#80601f', '#79a17d', '#527a56'])
   assert.ok(!css.includes(hex), `상태 색상 하드코딩 제거: ${hex}`);
@@ -70,7 +70,7 @@ assert.doesNotMatch(prepFn, /선택 사항, /, '선택 사항 행에는 상태 �
 assert.match(prepFn, /aria-label="\$\{esc\(x\.title\)\}\$\{state==='required'\?', 확인 필요':state==='complete'\?', 완료':''\}/, '상태를 스크린리더 라벨로도 제공');
 assert.match(css, /\.prep-check\{grid-template-columns:minmax\(0,1fr\) 30px 18px/, '자동 점검 행의 상태·chevron 고정 폭 확보');
 assert.match(css, /\.prep-state\{display:grid;width:30px;min-width:30px;height:30px;place-items:center;border-radius:50%/, '상태 아이콘을 동일 규격 배지로 표시');
-assert.match(css, /\.prep-state\.required,\.prep-check\.required \.prep-state\{background:var\(--caution-soft\);color:var\(--caution\)/, '확인 필요 배지는 warning 토큰 사용');
+assert.match(css, /\.prep-state\.required,\.prep-check\.required \.prep-state\{background:var\(--prep-warning-badge\);color:var\(--caution\)/, '확인 필요 배지는 한 단계 진한 amber 토큰 사용');
 assert.match(css, /\.prep-state\.complete,\.prep-check\.complete \.prep-state\{background:var\(--success-soft\);color:var\(--success\)/, '완료 배지는 success 토큰 사용');
 assert.match(css, /\.prep-chevron\{width:18px;padding:0;color:var\(--muted\)/, 'chevron은 neutral 색과 고정 폭 유지');
 assert.match(css, /\.prep-check\.required\{min-height:54px;border:1px solid var\(--line\);background:var\(--surface-muted\)\}/, '확인 필요 카드 테두리는 neutral로 완화');
@@ -89,4 +89,4 @@ for (const placeholder of [...source.matchAll(/placeholder="([^"]+)"/g)].map(x =
 assert.doesNotMatch(source, /예보 없음|연결 서류 없음|등록된 경비 없음|아직 등록된 여행 정보가 없습니다/, '0값 자리표시자 제거');
 assert.doesNotMatch(prepFn, /prep-weather|data-close>닫기/, '준비 시트의 날씨와 하단 닫기 중복 제거');
 
-console.log('55 QA consistency checks passed');
+console.log('56 QA consistency checks passed');

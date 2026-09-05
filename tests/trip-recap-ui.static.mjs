@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 // script registration
-assert.match(source, /trip-recap-logic\.js\?v=79/, 'trip recap logic script registered with current version');
+assert.match(source, /trip-recap-logic\.js\?v=80/, 'trip recap logic script registered with current version');
 
 // completion card wiring (previously a dead button)
 assert.match(source, /b\.dataset\.afterTrip==='schedule'\)tripRecapSheet\(trip\(\)\)/, '여행 완료 카드의 기록 보기 버튼이 recap 시트에 연결됨');
