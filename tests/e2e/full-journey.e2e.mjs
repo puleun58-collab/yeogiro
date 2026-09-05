@@ -596,6 +596,8 @@ try {
   // ---- STEP 14: realistic data volume ----
   const volumeContext = await browser.newContext({ viewport: { width: 320, height: 568 }, serviceWorkers: 'block' });
   const volumePage = await openApp(volumeContext);
+  // 대량 상태의 클라이언트 렌더·검색 성능만 측정한다. 10개 여행 업로드가 측정에 끼어들지 않게 동기화를 막는다.
+  await volumePage.route('**/api/trips**', route => route.abort('internetdisconnected'));
   await volumePage.evaluate(async () => {
     const iso = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const trips = [];
@@ -619,7 +621,7 @@ try {
   });
   const renderStart = Date.now();
   await volumePage.reload({ waitUntil: 'domcontentloaded' });
-  await volumePage.locator('.item').first().waitFor();
+  await volumePage.locator('.item').first().waitFor({ timeout: 45000 });
   const renderMs = Date.now() - renderStart;
   await closeSheet(volumePage);
   const searchStart = Date.now();
