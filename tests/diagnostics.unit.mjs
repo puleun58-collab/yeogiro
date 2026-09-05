@@ -89,14 +89,14 @@ const report = Diag.report({
   version: 'v1.0.0 · 1056eaa',
   online: true,
   sync: '최근 저장 2026년 9월 3일 12:00',
-  serviceWorker: '활성 · yeogiro-app-v78',
+  serviceWorker: '활성 · yeogiro-app-v79',
   storage: 'yeogiro-cache-v2 v1 · 대기 0건',
   api: '정상 · D1 ok',
   errors: stored
 });
 assert.match(report, /앱 버전: v1\.0\.0 · 1056eaa/, '복사 정보에 앱 버전 포함'); check();
 assert.match(report, /네트워크: 온라인/, '복사 정보에 네트워크 상태 포함'); check();
-assert.match(report, /Service Worker: 활성 · yeogiro-app-v78/, '복사 정보에 SW 상태 포함'); check();
+assert.match(report, /Service Worker: 활성 · yeogiro-app-v79/, '복사 정보에 SW 상태 포함'); check();
 assert.match(report, /최근 오류: SYNC_PULL_401 × 2/, '복사 정보에 오류 코드와 횟수 포함'); check();
 assert.equal(/ABC123|token|@|여권/.test(report), false, '복사 정보에 민감정보 없음'); check();
 assert.equal(Diag.report({}).includes('최근 오류: 없음'), true, '오류가 없으면 없음으로 표기'); check();
@@ -104,7 +104,7 @@ assert.equal(Diag.report({}).includes('최근 오류: 없음'), true, '오류가
 // ---- app wiring ----
 const html = readFileSync('index.html', 'utf8');
 assert.match(html, /<meta name="yeogiro-build" content="__APP_BUILD__">/, '빌드 식별자 자리표시자 존재'); check();
-assert.match(html, /<script src="\/diagnostics\.js\?v=78"><\/script>/, '진단 모듈 로드'); check();
+assert.match(html, /<script src="\/diagnostics\.js\?v=79"><\/script>/, '진단 모듈 로드'); check();
 assert.match(html, /id="appDiagnostics"/, '설정에서 진단 화면 진입'); check();
 assert.match(html, /async function appDiagnosticsSheet\(\)/, '진단 시트 구현'); check();
 assert.match(html, /YeogiroStore\.diagnostics\(\)/, '저장소 상태 조회'); check();

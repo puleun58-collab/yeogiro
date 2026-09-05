@@ -88,7 +88,8 @@ assert.match(source, /async function backupExportPreviewSheet/, 'JSON 백업 전
 assert.match(source, /포함 원본[\s\S]*누락 원본[\s\S]*예상 용량/, '백업 전 원본 포함 수와 예상 용량 표시');
 assert.match(source, /async function resetProtectionSheet/, '전체 초기화 전에 동기화·원본·최근 백업 상태 확인');
 assert.match(source, /function backupStatusCopy/, '백업 상태 안내를 관련 화면에서 공통 사용');
-assert.match(source, /아직 백업하지 않았어요[\s\S]*백업 후 변경사항 \$\{changes\}건 · 새 백업을 권장해요[\s\S]*최신 상태로 백업되어 있어요/, '백업 이력·최신·변경 있음 상태 문구 제공');
+assert.match(source, /백업 필요[\s\S]*백업 후 변경사항 \$\{changes\}건 · 새 백업을 권장해요[\s\S]*최신 상태로 백업되어 있어요/, '백업 미실행·최신·변경 있음 상태 문구 제공');
+assert.doesNotMatch(source, /아직 백업하지 않았어요/, 'JSON 백업 미실행 상태의 문장형 표현 제거');
 assert.match(source, /YeogiroStore\.completeBackup\(backup\.state,backup\.exportedAt\)/, '파일 다운로드 시작 뒤 백업 기준점 갱신');
 assert.match(source, /resetProtectionSheet[\s\S]*backupStatusCopy\(safety\)[\s\S]*safety\.backupChanges/, '전체 초기화에서 실제 백업 이후 변경 건수 표시');
 assert.doesNotMatch(settingsSource, /전체 초기화 \(두 번 탭\)/, '초기화 메뉴가 이전의 이중 탭 안내를 노출하지 않음');
@@ -118,7 +119,7 @@ assert.match(source, /class="danger-action" data-confirm-reset[^>]*>백업 없�
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=78',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=79',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
@@ -128,4 +129,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('121 access management and extraction UI checks passed');
+console.log('122 access management and extraction UI checks passed');

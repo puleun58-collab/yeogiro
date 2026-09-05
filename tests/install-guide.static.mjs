@@ -24,7 +24,8 @@ assert.equal(/상세가이드 보기|설치 안내로 돌아가기/.test(source)
 const markup = source.match(/function installGuideMarkup\(\)[\s\S]*?\n\}/)?.[0] || '';
 assert.match(markup, /\['chrome','safari'\]\.map\(key=>/, 'Chrome과 Safari를 같은 구조의 독립 섹션으로 렌더'); check();
 assert.match(markup, /<section class="install-guide"><div class="install-guide-head"><span class="install-guide-name">/, '섹션마다 브라우저 이름 헤더'); check();
-assert.match(markup, /<img class="install-guide-logo" src="\$\{guide\.logo\}" alt="" width="30" height="30">/, '브라우저 제목에 실제 로고 이미지를 렌더'); check();
+assert.match(markup, /<img class="install-guide-logo" src="\$\{guide\.logo\}" alt="" width="26" height="26">/, '브라우저 제목에 실제 로고 이미지를 렌더'); check();
+assert.match(source, /\.install-guide-logo\{display:block;width:26px;height:26px;flex:0 0 26px;object-fit:contain\}/, '브라우저 로고를 제목과 조화되는 26px 크기로 표시'); check();
 assert.match(source, /\.install-guide\{display:grid;gap:8px;padding:0 0 12px;border-bottom:1px solid var\(--line\)\}/, '섹션 사이 divider'); check();
 assert.match(source, /\.install-guides\{display:grid;gap:12px;padding:14px;border-radius:var\(--radius-card\);background:var\(--surface-muted\)\}/, '설치 안내 영역은 연한 neutral 배경'); check();
 assert.equal(/install-detail|data-install-detail/.test(source), false, '상세가이드 버튼 전용 CSS와 DOM을 제거'); check();
