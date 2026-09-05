@@ -619,9 +619,30 @@ try {
     await new Promise(resolve => { const tx = db.transaction(['cache', 'sessions', 'outbox'], 'readwrite'); tx.objectStore('cache').put(state, 'app-state'); tx.objectStore('sessions').clear(); tx.objectStore('outbox').clear(); tx.oncomplete = resolve; });
     localStorage.setItem('yeogiro-data-v1', JSON.stringify(state));
   });
+  // 첫 실행 시 앱이 빈 여행 상태를 비동기로 저장하므로, 주입한 상태가 남았는지 확인하고 필요하면 다시 쓴다.
+  await volumePage.waitForFunction(async () => {
+    const db = await new Promise(resolve => { const request = indexedDB.open('yeogiro-cache-v2', 1); request.onsuccess = () => resolve(request.result); });
+    const cached = await new Promise(resolve => { const request = db.transaction('cache').objectStore('cache').get('app-state'); request.onsuccess = () => resolve(request.result); });
+    if ((cached?.trips || []).length >= 10) return true;
+    const seeded = JSON.parse(localStorage.getItem('yeogiro-data-v1') || 'null');
+    if (!seeded) return false;
+    await new Promise(resolve => { const tx = db.transaction('cache', 'readwrite'); tx.objectStore('cache').put(seeded, 'app-state'); tx.oncomplete = resolve; });
+    return false;
+  }, null, { timeout: 30000 });
   const renderStart = Date.now();
   await volumePage.reload({ waitUntil: 'domcontentloaded' });
-  await volumePage.locator('.item').first().waitFor({ timeout: 45000 });
+  try {
+    await volumePage.locator('.item').first().waitFor({ timeout: 45000 });
+  } catch (error) {
+    const snapshot = await volumePage.evaluate(() => ({
+      hero: document.querySelector('#heroTitle')?.textContent,
+      items: document.querySelectorAll('.item').length,
+      chips: document.querySelectorAll('.datechip').length,
+      schedule: document.querySelector('#schedulePage')?.className,
+      tripCount: window.YeogiroStore ? Object.keys(YeogiroStore.status().roleByTrip).length : -1
+    })).catch(() => null);
+    throw new Error(`${error.message}\n--- volume page ---\n${JSON.stringify(snapshot)}\nproblems: ${JSON.stringify(volumePage.problems)}`);
+  }
   const renderMs = Date.now() - renderStart;
   await closeSheet(volumePage);
   const searchStart = Date.now();
