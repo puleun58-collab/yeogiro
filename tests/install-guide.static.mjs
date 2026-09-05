@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const source = readFileSync('index.html', 'utf8');
 let checks = 0;
@@ -18,16 +18,16 @@ assert.match(source, /data-install-close aria-label="설치 안내 닫기"/, '�
 assert.match(source, /<label class="install-optout"><input type="checkbox" id="installOptOut"> 다시 보지 않기<\/label>/, '하단에는 다시 보지 않기만 배치'); check();
 assert.equal(/data-install-now/.test(source), false, '기본 모달에 큰 설치 CTA를 두지 않음'); check();
 assert.equal(/install-guide-tag|지금 사용 중/.test(source), false, '현재 브라우저 배지 제거'); check();
-assert.equal(/상세가이드 보기[\s\S]{0,40}AIFuze/.test(source), false, '레퍼런스 브랜드 요소를 복제하지 않음'); check();
+assert.equal(/상세가이드 보기|설치 안내로 돌아가기/.test(source), false, '상세가이드 진입과 복귀 UI를 제거'); check();
 
 // ---- Chrome / Safari 독립 섹션 ----
 const markup = source.match(/function installGuideMarkup\(\)[\s\S]*?\n\}/)?.[0] || '';
 assert.match(markup, /\['chrome','safari'\]\.map\(key=>/, 'Chrome과 Safari를 같은 구조의 독립 섹션으로 렌더'); check();
 assert.match(markup, /<section class="install-guide"><div class="install-guide-head"><span class="install-guide-name">/, '섹션마다 브라우저 이름 헤더'); check();
-assert.match(markup, /<button class="install-detail" type="button" data-install-detail="\$\{key\}">▶ 상세가이드 보기<\/button>/, '헤더 오른쪽에 상세가이드 보기 버튼'); check();
+assert.match(markup, /<img class="install-guide-logo" src="\$\{guide\.logo\}" alt="" width="30" height="30">/, '브라우저 제목에 실제 로고 이미지를 렌더'); check();
 assert.match(source, /\.install-guide\{display:grid;gap:8px;padding:0 0 12px;border-bottom:1px solid var\(--line\)\}/, '섹션 사이 divider'); check();
 assert.match(source, /\.install-guides\{display:grid;gap:12px;padding:14px;border-radius:var\(--radius-card\);background:var\(--surface-muted\)\}/, '설치 안내 영역은 연한 neutral 배경'); check();
-assert.match(source, /\.install-detail\{flex:0 0 auto;min-height:32px;[^}]*background:var\(--primary-blue\);color:#fff/, '상세가이드 버튼은 여기로 primary 색상'); check();
+assert.equal(/install-detail|data-install-detail/.test(source), false, '상세가이드 버튼 전용 CSS와 DOM을 제거'); check();
 
 const guides = source.match(/const INSTALL_GUIDES=\{[\s\S]*?\n\};/)?.[0] || '';
 assert.match(guides, /chrome:\{name:'Chrome'/, 'Chrome 안내 정의'); check();
@@ -35,18 +35,18 @@ assert.match(guides, /safari:\{name:'Safari'/, 'Safari 안내 정의'); check();
 assert.match(guides, /steps:\[\['상단 URL 옆 <b>더보기<\/b> 탭',INSTALL_ICONS\.menu\],\['<b>홈 화면에 추가<\/b> 선택',INSTALL_ICONS\.plus\]\]/, 'Chrome 기본 안내는 2단계'); check();
 assert.match(guides, /steps:\[\['하단 <b>공유<\/b> 버튼 탭',INSTALL_ICONS\.share\],\['<b>홈 화면에 추가<\/b> 선택',INSTALL_ICONS\.plus\]\]/, 'Safari 기본 안내는 2단계'); check();
 assert.equal(/steps:\[[^\]]*오른쪽 위 <b>추가/.test(guides), false, '오른쪽 위 추가 단계는 기본 안내에서 제외'); check();
-assert.match(guides, /detail:\[[\s\S]{0,400}오른쪽 위 <b>추가<\/b>를 누르세요/, '상세가이드에서만 마지막 추가 단계를 설명'); check();
-assert.match(guides, /notes:\[[\s\S]{0,300}같은 주소를 Safari에서 열어 추가할 수 있어요/, '대체 경로 설명은 상세가이드로 이동'); check();
-assert.match(guides, /Samsung Internet은 하단 <b>메뉴<\/b>/, 'Samsung Internet 경로는 상세가이드에 포함'); check();
+assert.equal(/detail:\[|notes:\[/.test(guides), false, '별도 상세가이드 데이터 제거'); check();
+assert.match(guides, /logo:'\/assets\/icons\/browser-chrome\.svg'/, 'Chrome 로고는 내부 asset을 사용'); check();
+assert.match(guides, /logo:'\/assets\/icons\/browser-safari\.svg'/, 'Safari 로고는 내부 asset을 사용'); check();
 assert.match(source, /INSTALL_ICONS=\{share:'<svg/, '공유·추가·메뉴 시스템 아이콘 제공'); check();
 assert.match(source, /\.install-step\{display:grid;grid-template-columns:22px minmax\(0,1fr\) 24px/, '단계 번호·설명·시스템 아이콘 고정 배치'); check();
 assert.match(source, /\.install-step-no\{[^}]*border-radius:var\(--radius-chip\)/, '단계 번호는 작은 rounded square'); check();
 
-// ---- 상세가이드 뷰 ----
-assert.match(source, /function installDetailMarkup\(key\)/, '상세가이드 마크업 제공'); check();
-assert.match(source, /installDetailMarkup[\s\S]{0,900}data-install-back>← 설치 안내로 돌아가기/, '상세가이드에서 기본 안내로 돌아갈 수 있음'); check();
-assert.match(source, /if\(detail\)\{e\.preventDefault\(\);e\.stopImmediatePropagation\(\);renderInstallGuide\('detail',detail\.dataset\.installDetail\);return\}/, '상세가이드는 같은 모달 안에서 전환'); check();
-assert.match(source, /if\(installGuideView!=='main'\)\{renderInstallGuide\('main'\);return\}/, '상세가이드에서 Escape는 기본 안내로 복귀'); check();
+// ---- 브라우저 로고와 단일 안내 화면 ----
+assert.equal(source.includes('function installDetailMarkup'), false, '상세가이드 전용 마크업 제거'); check();
+assert.equal(/data-install-back|data-install-detail/.test(source), false, '상세가이드 진입·복귀 경로 제거'); check();
+assert.equal(/installGuideView|installGuideReason/.test(source), false, '상세 화면 전용 상태값 제거'); check();
+assert.match(source, /if\(e\.key==='Escape'\)\{e\.preventDefault\(\);e\.stopImmediatePropagation\(\);closeInstallGuide\(\);return\}/, 'Escape는 설치 모달을 바로 닫음'); check();
 
 // ---- 브라우저 감지는 내부 로직에서 계속 사용 ----
 const env = source.match(/function installEnvironment\(\)[\s\S]*?\n\}/)?.[0] || '';
@@ -60,7 +60,7 @@ assert.match(markup, /inApp\?'<p class="install-inapp">앱 안에서 열린 화�
 assert.match(source, /function standaloneApp\(\)\{return matchMedia\('\(display-mode: standalone\)'\)\.matches\|\|matchMedia\('\(display-mode: window-controls-overlay\)'\)\.matches\|\|navigator\.standalone===true\}/, 'standalone 판단은 display-mode와 iOS 플래그를 함께 사용'); check();
 assert.match(source, /function canUseInstallPrompt\(\)\{return Boolean\(installPrompt\)&&!installEnvironment\(\)\.key\.startsWith\('ios'\)\}/, 'iOS에서는 install prompt를 사용하지 않음'); check();
 assert.match(source, /async function runInstallPrompt\(\)[\s\S]{0,300}installPrompt\.prompt\(\)/, 'Android 설치 prompt 처리 유지'); check();
-assert.match(source, /async function installApp\(\)\{[\s\S]{0,200}if\(canUseInstallPrompt\(\)\)\{await runInstallPrompt\(\);return\}openInstallGuide\('manual'\)\}/, 'prompt를 쓸 수 없으면 단계 안내를 연다'); check();
+assert.match(source, /async function installApp\(\)\{[\s\S]{0,200}if\(canUseInstallPrompt\(\)\)\{await runInstallPrompt\(\);return\}openInstallGuide\(\)\}/, 'prompt를 쓸 수 없으면 단계 안내를 연다'); check();
 
 // ---- 자동 노출 조건 ----
 const maybe = source.match(/function maybeShowInstallGuide\(\)[\s\S]*?\n\}/)?.[0] || '';
@@ -90,4 +90,5 @@ assert.equal(source.includes('function installHelp'), false, '이전 설치 안�
 assert.match(source, /function appUpdateSheet\(registration=pwaRegistration\)/, '업데이트 안내는 별도 화면으로 유지'); check();
 assert.equal(/openInstallGuide[\s\S]{0,120}appUpdateSheet/.test(source), false, '설치 안내와 업데이트 안내를 섞지 않음'); check();
 
+assert.ok(existsSync('assets/icons/browser-chrome.svg')&&existsSync('assets/icons/browser-safari.svg'), '브라우저 로고 asset이 로컬에 존재'); check();
 console.log(`${checks} install guide checks passed`);

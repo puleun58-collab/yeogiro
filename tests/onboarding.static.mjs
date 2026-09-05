@@ -40,10 +40,10 @@ assert.match(source, /'<div class="expense-empty">아직 기록된 지출이 없
 
 assert.match(source, /toast\(!firstTrip\?'여행을 저장했습니다\.':t\.cities\.length\?'여행을 만들었습니다\. 첫 일정을 추가해 보세요\.':'여행을 만들었습니다\. 방문 도시를 먼저 추가해 주세요\.'\)/, '여행 생성 직후 다음 행동 안내 토스트 (신규 및 재사용된 빈 여행 모두 포함)');
 
-// 온보딩 재생은 설정 목록이 아니라 사용법 화면 안에서 제공한다 (설정의 사용법 항목 중복 제거)
-assert.match(source, /data-open="onboarding">🔰 소개 화면 다시 보기/, '사용법 화면에서 온보딩 다시 보기 진입점 제공');
-assert.doesNotMatch(source, /처음부터 사용법 보기/, '설정 앱 안내에 사용법 항목을 중복하지 않음');
-assert.match(source, /onboarding:\(\)=>onboardingSheet\(0\)/, 'data-open 디스패처가 onboarding 키를 처리함');
+// 온보딩은 첫 방문에서만 제공하며 사용법 화면에서 다시 여는 진입점은 두지 않는다.
+assert.doesNotMatch(source, /data-open="onboarding"/, '사용법 화면에 소개 화면 다시 보기 진입점이 없음');
+assert.doesNotMatch(source, /처음부터 사용법 보기|소개 화면 다시 보기/, '설정과 사용법 화면 모두 온보딩 재생 항목을 노출하지 않음');
+assert.doesNotMatch(source, /onboarding:\(\)=>onboardingSheet\(0\)/, '일반 data-open 디스패처에서 온보딩 재생 경로를 제거함');
 
 // usage guide restructured by trip-flow stage, not a flat feature list
 for (const heading of ['여행 시작하기', '함께 사용하기', '여행 준비하기', '여행 중 사용하기', '여행이 끝난 뒤']) {

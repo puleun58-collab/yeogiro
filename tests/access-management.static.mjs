@@ -36,6 +36,11 @@ assert.match(source, /trip-access-stack[\s\S]*data-open-recovery>여행 불러�
 assert.match(source, /id="recoveryForm"[\s\S]*소유권 복구키[\s\S]*class="save management-primary-action">여행 불러오기[\s\S]*id="deviceLinkForm"[\s\S]*class="save management-primary-action">이 기기에 연결/, '여행 불러오기와 기기 연결 기본 버튼 규격 통일');
 assert.match(source, /<h2>공유 및 권한<\/h2>[\s\S]*<h3>참여자<\/h3>[\s\S]*<h3>새 초대<\/h3>[\s\S]*<h3>활성 초대 링크<\/h3>[\s\S]*<summary>관리<\/summary>/, '공유 및 권한 화면 정보 순서 유지');
 assert.match(source, /id="inviteRole"[\s\S]*id="inviteUsage"[\s\S]*id="inviteExpiry"[\s\S]*value="1"[\s\S]*value="7" selected[\s\S]*value="30"/, '초대 권한·사용 방식·만료 선택과 7일 기본값 제공');
+assert.match(source, /value="30">30일<\/option><option value="continuous">계속 사용<\/option>/, '계속 사용을 마지막 만료 옵션으로 제공');
+assert.match(source, /expiry==='continuous'\?null:Number\(expiry\)\|\|7/, '계속 사용은 null 만료로 전달하고 기존 7일 기본값을 유지');
+assert.match(source, /i\.expires_at\?shortDate\(i\.expires_at\)\+'까지':'계속 사용'/, '초대 관리 화면에서도 만료 없는 링크를 계속 사용으로 표시');
+assert.match(sync, /expiresInDays=expiresInDays===null\?null:\(\[1,7,30\]/, '동기화 계층은 계속 사용 상태를 null로 보존');
+assert.match(worker, /noExpiry=body\.expiresInDays===null/, 'Worker는 null 만료를 명시적으로 허용');
 assert.match(source, /function inviteResultSheet[\s\S]*data-copy-invite-link>링크 복사[\s\S]*data-share-invite-link>공유/, '초대 생성 후 복사와 시스템 공유 제공');
 assert.match(source, /data-change-member-role[\s\S]*참여자 권한 변경[\s\S]*askConfirm/, '권한 변경 전 앱 내부 재확인 제공');
 assert.match(source, /id="timeOptionsToggle"[\s\S]*aria-expanded="\$\{expanded\}"[\s\S]*시간 세부 설정/, '종료·준비·고정 시간을 선택형 접기 영역으로 제공');
@@ -82,6 +87,10 @@ assert.match(settingsSource, /installed\?'':'<button id="installFromSettings"/, 
 assert.match(source, /async function backupExportPreviewSheet/, 'JSON 백업 전에 포함 내용을 확인');
 assert.match(source, /포함 원본[\s\S]*누락 원본[\s\S]*예상 용량/, '백업 전 원본 포함 수와 예상 용량 표시');
 assert.match(source, /async function resetProtectionSheet/, '전체 초기화 전에 동기화·원본·최근 백업 상태 확인');
+assert.match(source, /function backupStatusCopy/, '백업 상태 안내를 관련 화면에서 공통 사용');
+assert.match(source, /아직 백업하지 않았어요[\s\S]*백업 후 변경사항 \$\{changes\}건 · 새 백업을 권장해요[\s\S]*최신 상태로 백업되어 있어요/, '백업 이력·최신·변경 있음 상태 문구 제공');
+assert.match(source, /YeogiroStore\.completeBackup\(backup\.state,backup\.exportedAt\)/, '파일 다운로드 시작 뒤 백업 기준점 갱신');
+assert.match(source, /resetProtectionSheet[\s\S]*backupStatusCopy\(safety\)[\s\S]*safety\.backupChanges/, '전체 초기화에서 실제 백업 이후 변경 건수 표시');
 assert.doesNotMatch(settingsSource, /전체 초기화 \(두 번 탭\)/, '초기화 메뉴가 이전의 이중 탭 안내를 노출하지 않음');
 assert.match(source, /if\(b\.dataset\.confirmReset!==undefined\)\{[^}]*state=sample\(\)[^}]*YeogiroStore\.persist/, '보호 화면에서 확인한 경우에만 전체 초기화');
 assert.match(source, /phase==='after'[\s\S]*allDocuments\(\)\.length[\s\S]*여행 기록 보기[\s\S]*예약 서류 확인/, '여행 종료 화면은 여행 기록과 존재하는 예약 서류에 집중');
@@ -103,11 +112,13 @@ assert.match(source, /protectionState=[\s\S]*\['설정됨'[\s\S]*\['설정 필�
 assert.match(source, /row\('📌','파일 보관 설정'[\s\S]*data-safety-protect>보관 설정/, '파일 보관 설정의 제목과 버튼 문구 통일');
 assert.doesNotMatch(source, /기기 저장공간|기기 보관 보호|기기 보관 보호하기|파일 보관 보호/, '중복 명사와 오해하기 쉬운 이전 보관 문구 제거');
 assert.match(source, /function appUpdateSheet[\s\S]*data-update-apply>지금 업데이트/, '새 버전 상태와 데이터 보존 안내 화면 제공');
-assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callout\{border-left:0\}[\s\S]*review-callout app-update-callout/, '업데이트 안내 박스는 배경을 유지하고 왼쪽 선만 제거');
+assert.doesNotMatch(source, /\.review-callout(?:\.[^{,]+)?(?:,[^{]+)?\{[^}]*border-left/, '안내·경고 카드의 장식성 왼쪽 세로선 제거');
+assert.match(source, /\.review-callout\.reset-warning\{background:var\(--surface-muted\)\}/, '전체 초기화 안내 박스는 neutral 배경 유지');
+assert.match(source, /class="danger-action" data-confirm-reset[^>]*>백업 없이 전체 초기화/, '실제 초기화 버튼의 danger 강조 유지');
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=77',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=78',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
@@ -117,4 +128,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('110 access management and extraction UI checks passed');
+console.log('121 access management and extraction UI checks passed');

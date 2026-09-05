@@ -316,7 +316,10 @@ try {
   assert.ok(drivingRoute.data.routes?.[0]?.distance > 0 && drivingRoute.data.routes[0].duration > 0, '자동차 경로 거리와 이동시간 제공');
   assert.equal((await api('/api/route?profile=transit&fromLat=35.79&fromLng=129.33&toLat=35.83&toLng=129.28')).response.status, 400, '지원하지 않는 라우팅 프로필 차단');
 
-  const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false } });
+  const revokedInvite = await api(`/api/trips/${id}/invites`, { method: 'POST', token: owner, body: { role: 'viewer', singleUse: false, expiresInDays: null } });
+  assert.equal(revokedInvite.response.status, 201, '계속 사용하는 초대 링크 생성');
+  assert.equal(revokedInvite.data.expiresAt, null, '계속 사용 초대는 만료 시각을 null로 저장');
+  assert.equal((await api('/api/invites/preview', { method: 'POST', body: { token: revokedInvite.data.token } })).response.status, 200, '계속 사용 초대는 비활성화 전까지 유효');
   await api(`/api/trips/${id}/invites/${revokedInvite.data.id}`, { method: 'DELETE', token: owner });
   const revoked = await api('/api/invites/redeem', { method: 'POST', body: { token: revokedInvite.data.token } });
   assert.equal(revoked.response.status, 404, 'revoke된 invite 거부');
@@ -349,7 +352,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('153 API integration checks passed');
+  console.log('156 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;

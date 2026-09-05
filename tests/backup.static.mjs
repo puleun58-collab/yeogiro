@@ -9,9 +9,12 @@ assert.match(source, /mode==='new'/, 'restore supports importing as a new trip')
 assert.match(source, /kept=\(current\.trips\|\|\[\]\)\.filter/, 'restore preserves unrelated current trips');
 assert.match(source, /async function auditFiles/, 'file metadata and IndexedDB state can be audited');
 assert.match(source, /async function dataSafety[\s\S]*localOnly:[^,]+[\s\S]*missing:/, 'data safety summary distinguishes local-only and missing originals');
-assert.match(source, /await put\('meta',exportedAt,'last-backup'\)/, 'successful backup creation records its timestamp');
+assert.match(source, /async function completeBackup[\s\S]*BACKUP_STATUS_KEY/, '다운로드가 시작된 뒤에만 백업 기준점을 기록');
 assert.match(source, /async function backupReadiness[\s\S]*estimatedBytes/, 'backup preflight counts included originals, missing originals, and estimated size');
 assert.match(source, /return\{format:'yeogiro-backup-v2',exportedAt,summary,fileSummary,state:copy\}/, 'backup records original-file summary without changing v2 format');
+assert.match(source, /function backupChangeIndex[\s\S]*BACKUP_COLLECTIONS/, '백업에 포함되는 여행 데이터 단위로 기준점을 생성');
+assert.match(source, /function backupChangeCount/, '마지막 백업과 현재 데이터의 추가·수정·삭제 건수를 계산');
+assert.match(source, /async function backupStatus/, '마지막 백업 시각과 이후 변경 건수를 함께 조회');
 assert.match(source, /function embeddedFileSummary/, 'legacy backups derive embedded original counts during preview');
 assert.match(source, /doc\.data[\s\S]*saveBlob\(dataUrlBlob\(doc\.data\)/, 'embedded reservation originals restore into IndexedDB');
 assert.match(source, /legacyHero[\s\S]*saveBlob\(dataUrlBlob\(legacyHero\)/, 'embedded representative photo restores into IndexedDB');
@@ -21,4 +24,4 @@ assert.match(source, /async function repairFileMetadata/, 'local originals can s
 assert.match(source, /navigator\.storage\?\.estimate/, 'data safety reports browser storage usage when supported');
 assert.match(source, /navigator\.storage\?\.persisted/, 'data safety checks persistent storage protection without mutating data');
 assert.match(source, /files:\{[\s\S]*bytes:[\s\S]*hero:[\s\S]*issues:/, 'data safety exposes file bytes, hero count, and issue details');
-console.log('19 backup and restore checks passed');
+console.log('22 backup and restore checks passed');

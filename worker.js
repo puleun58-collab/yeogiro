@@ -198,7 +198,7 @@ async function emptyTrash(env,tripId,member){
 }
 async function createInvite(request,env,tripId,member){
   if(member.role!=='owner')return json({error:'소유자만 초대 링크를 만들 수 있습니다.'},403);let body={};try{body=await request.json()}catch{}
-  const role=body.role==='viewer'?'viewer':'editor',singleUse=body.singleUse!==false,token=randomToken(36),stamp=now(),days=Math.min(30,Math.max(1,Number(body.expiresInDays)||7)),seconds=Number.isFinite(Number(body.expiresInSeconds))?Math.min(30*86400,Math.max(1,Number(body.expiresInSeconds))):days*86400,expiresAt=new Date(Date.now()+seconds*1000).toISOString(),inviteId=id('inv');
+  const role=body.role==='viewer'?'viewer':'editor',singleUse=body.singleUse!==false,token=randomToken(36),stamp=now(),hasSeconds=body.expiresInSeconds!==undefined&&body.expiresInSeconds!==null&&Number.isFinite(Number(body.expiresInSeconds)),noExpiry=body.expiresInDays===null&&!hasSeconds,days=Math.min(30,Math.max(1,Number(body.expiresInDays)||7)),seconds=hasSeconds?Math.min(30*86400,Math.max(1,Number(body.expiresInSeconds))):days*86400,expiresAt=noExpiry?null:new Date(Date.now()+seconds*1000).toISOString(),inviteId=id('inv');
   await env.DB.prepare(`INSERT INTO invites (id,trip_id,token_hash,role,created_by_member_id,expires_at,created_at,max_uses,use_count) VALUES (?,?,?,?,?,?,?,?,0)`).bind(inviteId,tripId,await hash(token),role,member.id,expiresAt,stamp,singleUse?1:null).run();return json({id:inviteId,token,role,expiresAt,singleUse},201);
 }
 async function redeemInvite(request,env){

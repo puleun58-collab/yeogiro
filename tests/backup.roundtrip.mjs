@@ -100,6 +100,20 @@ const backup = await store.exportBackup(sourceState);
 assert.equal(backup.fileSummary.included, 2, 'backup records both embedded originals');
 assert.match(backup.state.trips[0].items[0].userDocs[0].data, /^data:application\/pdf;base64,/, 'document is embedded');
 assert.match(backup.state.trips[0].heroData, /^data:image\/jpeg;base64,/, 'hero image is embedded');
+let tracked = await store.backupStatus(sourceState);
+assert.equal(tracked.lastBackup, '', '백업 파일 생성만으로 마지막 백업 시각을 갱신하지 않음');
+assert.equal(tracked.changes, 0, '백업 기준점이 없을 때 변경 건수를 추측하지 않음');
+await store.completeBackup(backup.state, backup.exportedAt);
+tracked = await store.backupStatus(sourceState);
+assert.equal(tracked.lastBackup, backup.exportedAt, '다운로드 완료 처리 후 마지막 백업 시각 저장');
+assert.equal(tracked.changes, 0, '백업 직후 현재 데이터는 최신 상태');
+const changedState = structuredClone(sourceState);
+changedState.trips[0].items[0].name = '수정한 예약 일정';
+assert.equal((await store.backupStatus(changedState)).changes, 1, '일정 수정 한 건을 백업 이후 변경으로 계산');
+changedState.trips[0].expenses.push({ id: 'expense_added', title: '추가 경비', amountMinor: 1000 });
+assert.equal((await store.backupStatus(changedState)).changes, 2, '서로 다른 백업 대상 변경 건수를 합산');
+await store.completeBackup(changedState, '2026-09-05T00:00:00.000Z');
+assert.equal((await store.backupStatus(changedState)).changes, 0, '다시 백업하면 변경 건수를 0으로 초기화');
 
 stores.get('files').clear();
 const unrelated = { id: 'trip_existing', title: '기존 여행', start: '2026-08-20', end: '2026-08-20', cities: [], items: [], flights: [], lodgings: [], files: [], heroFileId: '' };
@@ -147,4 +161,4 @@ const beforeInvalid = structuredClone(importedAsNew);
 assert.throws(() => store.previewBackup({ format: 'yeogiro-backup-v2', state: { trips: [] } }, importedAsNew), /여행 데이터/);
 assert.deepEqual(importedAsNew, beforeInvalid, 'invalid restore preview does not mutate current data');
 
-console.log('30 backup round-trip checks passed');
+console.log('37 backup round-trip checks passed');
