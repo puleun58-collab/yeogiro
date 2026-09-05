@@ -40,8 +40,9 @@ assert.match(source, /'<div class="expense-empty">아직 기록된 지출이 없
 
 assert.match(source, /toast\(!firstTrip\?'여행을 저장했습니다\.':t\.cities\.length\?'여행을 만들었습니다\. 첫 일정을 추가해 보세요\.':'여행을 만들었습니다\. 방문 도시를 먼저 추가해 주세요\.'\)/, '여행 생성 직후 다음 행동 안내 토스트 (신규 및 재사용된 빈 여행 모두 포함)');
 
-// settings entry to relaunch onboarding without resetting first-run state
-assert.match(source, /data-open="onboarding">🔰 처음부터 사용법 보기/, '설정에서 온보딩 다시 보기 진입점 제공');
+// 온보딩 재생은 설정 목록이 아니라 사용법 화면 안에서 제공한다 (설정의 사용법 항목 중복 제거)
+assert.match(source, /data-open="onboarding">🔰 소개 화면 다시 보기/, '사용법 화면에서 온보딩 다시 보기 진입점 제공');
+assert.doesNotMatch(source, /처음부터 사용법 보기/, '설정 앱 안내에 사용법 항목을 중복하지 않음');
 assert.match(source, /onboarding:\(\)=>onboardingSheet\(0\)/, 'data-open 디스패처가 onboarding 키를 처리함');
 
 // usage guide restructured by trip-flow stage, not a flat feature list
@@ -59,4 +60,4 @@ assert.match(source, /if\(x\.members\.length<=1&&!activeInvites\.length\)\{openS
 // AI import already discloses that results are not auto-saved (verified, not modified)
 assert.match(source, /자동 추출값은 바로 저장되지 않습니다\. 기존 데이터와 비교한 뒤 적용할 내용을 확인하세요\./, 'AI 문서 입력 시 자동 저장 오해 방지 문구 유지');
 
-console.log('21 onboarding and guided-discovery checks passed');
+console.log('22 onboarding and guided-discovery checks passed');

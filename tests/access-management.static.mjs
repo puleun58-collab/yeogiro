@@ -68,7 +68,10 @@ assert.match(source, /function collaborationSheet/, '기록 및 복구 모바일
 assert.match(source, /<h2>기록 및 복구<\/h2>[\s\S]*<h3>휴지통<\/h3>[\s\S]*<h3>최근 변경<\/h3>/, '휴지통을 최근 변경보다 먼저 표시');
 assert.match(source, /function primaryActivity[\s\S]*type==='file'&&action==='updated'[\s\S]*heroFileId/, '내부 대표사진과 파일 메타데이터 기록을 기본 목록에서 제외');
 assert.match(source, /function groupActivities[\s\S]*600000/, '10분 이내 반복 기록 묶음 제공');
-assert.match(source, /function activityListMarkup[\s\S]*slice\(0,20\)[\s\S]*더 보기/, '최근 변경 기본 20개와 더보기 제공');
+assert.match(source, /function activityListMarkup\(groups,limit=activityLimit\)[\s\S]{0,400}groups\.slice\(0,limit\)/, '최근 변경 목록은 제한 개수만 렌더');
+assert.match(source, /groups\.length>limit\?`<button class="activity-more" data-activity-more>이전 기록 \$\{groups\.length-limit\}건 더 보기/, '남은 기록 수를 더 보기 버튼에 표시');
+assert.match(source, /activityLimit=30/, '최근 변경 기본 표시 30건');
+assert.match(source, /secondary\.slice\(0,20\)/, '기타 기록은 20건으로 제한');
 assert.match(source, /data-restore-trash/, '삭제 항목 복원 동작 제공');
 assert.match(source, /class="import-result-title"/, '분석 결과 제목에 전용 간격 클래스 적용');
 assert.match(source, /\.import-result>\.review-callout\{margin:0 0 16px\}/, '저장 전 확인과 첫 입력 필드 사이 간격 제공');
@@ -104,7 +107,7 @@ assert.match(source, /\.review-callout\.plain,\.review-callout\.app-update-callo
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=76',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=77',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
@@ -114,4 +117,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('107 access management and extraction UI checks passed');
+console.log('110 access management and extraction UI checks passed');

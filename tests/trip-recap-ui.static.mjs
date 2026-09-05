@@ -4,11 +4,14 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 // script registration
-assert.match(source, /trip-recap-logic\.js\?v=76/, 'trip recap logic script registered with current version');
+assert.match(source, /trip-recap-logic\.js\?v=77/, 'trip recap logic script registered with current version');
 
 // completion card wiring (previously a dead button)
 assert.match(source, /b\.dataset\.afterTrip==='schedule'\)tripRecapSheet\(trip\(\)\)/, '여행 완료 카드의 기록 보기 버튼이 recap 시트에 연결됨');
 assert.match(source, /b\.dataset\.afterTrip==='docs'\)documentCabinet\(\)/, '여행 완료 카드의 예약 서류 버튼이 서류함에 연결됨');
+assert.equal((source.match(/closest\('\[data-after-trip\]'\)/g) || []).length, 1, '여행 완료 CTA를 처리하는 리스너는 하나만 존재');
+assert.doesNotMatch(source, /dataset\.afterTrip==='backup'/, '사용하지 않는 여행 완료 backup 분기 제거');
+assert.doesNotMatch(source, /dataset\.afterTrip\)\{e\.preventDefault\(\);e\.stopImmediatePropagation\(\);if\(b\.dataset\.afterTrip==='docs'\)/, '경로·서류 리스너가 여행 기록 CTA를 가로채지 않음');
 assert.match(source, /class="card today-empty home-card"><small class="today-eyebrow">여행 완료<\/small>.*data-after-trip="schedule">여행 기록 보기/, '여행 종료 후 홈이 진행형 요소 대신 완료 화면으로 전환됨');
 assert.doesNotMatch(source, /class="card trip-complete"/, '완료 카드가 공통 홈 카드 스타일을 사용');
 
@@ -44,4 +47,4 @@ assert.match(similarFn, /includeChecklist/, '체크리스트 포함 여부 선�
 assert.match(similarFn, /예약번호, 항공편, 숙소, 예약서류, 경비는 복사하지 않습니다/, '민감정보 미복제 안내');
 assert.match(source, /YeogiroRecap\.duplicateTrip\(\{source,newId:uid\(\),newTitle:title,newStart:start,newEnd:end/, '복제 제출 시 recap 로직으로 새 여행 생성');
 
-console.log('23 trip recap UI checks passed');
+console.log('26 trip recap UI checks passed');

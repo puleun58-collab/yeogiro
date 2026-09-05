@@ -59,6 +59,7 @@ try {
   assert.deepEqual({ fixed: created.data.trip.items[0].fixed, moveMinutes: created.data.trip.items[0].moveMinutes }, { fixed: true, moveMinutes: 35 }, '고정 일정과 수동 이동시간 저장 및 조회');
   assert.equal(created.data.trip.items[0].reminderMinutes, 30, '일정 알림 시점을 저장하고 조회');
   assert.deepEqual(created.data.trip.checklist.map(x => x.title), ['충전기'], '여행 준비 체크리스트를 저장하고 조회');
+  assert.deepEqual({ lat: created.data.trip.items[0].lat, lng: created.data.trip.items[0].lng }, { lat: null, lng: null }, '좌표 없는 일정은 (0,0)이 아니라 좌표 없음으로 저장');
   const owner = created.data.accessToken;
   assert.ok(created.data.sessionId, '여행 생성 시 기기 세션 발급');
   const createdActivity = await api(`/api/trips/${id}/activity`, { token: owner });
@@ -348,7 +349,7 @@ try {
   assert.equal(recoveryLimited.response.status, 429, '복구 API rate limit');
 
   await api(`/api/trips/${id}`, { method: 'DELETE', token: editor });
-  console.log('152 API integration checks passed');
+  console.log('153 API integration checks passed');
 } catch (error) {
   console.error(serverLog);
   throw error;
