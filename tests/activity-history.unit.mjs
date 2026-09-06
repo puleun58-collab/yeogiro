@@ -20,6 +20,9 @@ const context = {
   },
   shortDate(value) {
     return String(value);
+  },
+  disclosureChevron() {
+    return '<svg class="disclosure-chevron" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m7.5 4.5 5.5 5.5-5.5 5.5"/></svg>';
   }
 };
 vm.createContext(context);
@@ -70,7 +73,7 @@ assert.equal(groups[0].entries.length, 2, '가까운 반복 기록을 한 묶음
 assert.match(activityMarkup(groups[0]), /일정 2건 수정/, '묶음 제목에 대상 건수를 표시');
 assert.match(activityMarkup(groups[0]), /동행자 · 오후 6:05/, '기록에서 권한명 대신 참여자 표현과 12시간제 시간 사용');
 assert.doesNotMatch(activityMarkup(groups[0]), /여행 관리자/, '권한명은 기록 문구에 노출하지 않음');
-assert.match(activityMarkup(groups[0]), /<span class="activity-chevron" aria-hidden="true">›<\/span><\/summary>/, 'chevron을 우측 마지막 요소로 배치');
+assert.match(activityMarkup(groups[0]), /<svg class="disclosure-chevron"[\s\S]*<\/svg><\/summary>/, '공통 SVG chevron을 우측 마지막 요소로 배치');
 
 const detailed = groupActivities([activity({ details: { fields: ['time'], values: { time: { before: '19:30', after: '20:00' } } } })]);
 assert.match(activityMarkup(detailed[0]), /<b>시간<\/b><span>오후 7:30 → 오후 8:00<\/span>/, '변경 전과 변경 후 값을 함께 표시');

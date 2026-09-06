@@ -74,11 +74,29 @@ assert.match(css, /\.prep-state\.required,\.prep-check\.required \.prep-state\{b
 assert.match(css, /\.prep-state\.complete,\.prep-check\.complete \.prep-state\{background:var\(--success-soft\);color:var\(--success\)/, '완료 배지는 success 토큰 사용');
 assert.match(css, /\.prep-chevron\{width:18px;padding:0;color:var\(--muted\)/, 'chevron은 neutral 색과 고정 폭 유지');
 assert.match(css, /\.prep-check\.required\{min-height:54px;border:1px solid var\(--line\);background:var\(--surface-muted\)\}/, '확인 필요 카드 테두리는 neutral로 완화');
-assert.match(css, /\.prep-disclosure\[open\]>summary>span\[aria-hidden\]\{transform:rotate\(90deg\)\}/, '펼침 상태에서 chevron 방향 전환');
+assert.match(css, /details\.disclosure\[open\]>summary\.disclosure-summary \.disclosure-chevron,[^{]+\{transform:rotate\(90deg\)\}/, '펼침 상태에서 공통 SVG chevron 방향 전환');
 
 // touch targets stay >=44px even after compaction (spec sections 9, 22)
 assert.match(css, /\.prep-menu>summary\{display:grid;width:44px;height:44px/, '오버플로 메뉴 터치 영역 확보');
 assert.match(css, /\.prep-disclosure>summary\{min-height:44px\}/, '접기 행 터치 영역 확보');
+
+// disclosure indicators use one SVG, one motion rule, and native details semantics
+const disclosureBlocks = [...source.matchAll(/<details class="[^"]*\bdisclosure\b[^"]*">[\s\S]*?<\/details>/g)].map(match => match[0]);
+assert.equal(disclosureBlocks.length, 8, '실제 접기 영역 여덟 곳을 공통 disclosure로 분류');
+for (const block of disclosureBlocks) {
+  assert.match(block, /<summary class="disclosure-summary">/, '접기 행에 공통 summary 클래스 사용');
+  assert.match(block, /\$\{disclosureChevron\(\)\}<\/summary>/, '접기 행 우측에 공통 SVG chevron 배치');
+  assert.match(block, /class="[^"]*\bdisclosure-panel\b[^"]*"/, 'aria-controls 대상 패널을 한 개로 묶음');
+  assert.doesNotMatch(block, /[▶▼▲►▾▸›⌄]/, '접기 전용 문자형 화살표 제거');
+}
+assert.match(source, /function disclosureChevron\(\)\{return'<svg class="disclosure-chevron" viewBox="0 0 20 20" aria-hidden="true" focusable="false">/, '장식용 20px SVG chevron 공통 helper 제공');
+assert.match(source, /function bindDisclosures[\s\S]*summary\.setAttribute\('aria-controls',panel\.id\)[\s\S]*summary\.setAttribute\('aria-expanded',String\(details\.open\)\)/, '동적 접기 영역의 controls와 expanded 상태 동기화');
+assert.match(source, /id="timeOptionsToggle" aria-expanded="\$\{expanded\}" aria-controls="timeOptionsPanel"[\s\S]{0,180}\$\{disclosureChevron\(\)\}<\/button>/, '시간 세부 설정 버튼도 공통 SVG와 ARIA 상태 유지');
+assert.match(css, /summary::marker\{content:""\}summary::-webkit-details-marker\{display:none\}/, '표준 및 Safari 기본 details marker 제거');
+assert.match(css, /\.disclosure-chevron\{[^}]*width:20px;height:20px[\s\S]*stroke-width:2[\s\S]*transition:transform \.18s/, '공통 chevron 크기·선·전환 규격 유지');
+assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.disclosure-chevron\{transition:none\}\}/, '모션 감소 설정에서 chevron 전환 제거');
+assert.match(source, /\$\('#tripPick'\)\.textContent='여행 ▾'/, '여행 선택 navigation 표시는 변경하지 않음');
+assert.match(source, /home-state-chevron" aria-hidden="true">›/, '준비 화면 이동 표시는 disclosure와 분리');
 assert.match(css, /\.today-support>button,\.today-support>div\{min-height:56px/, '홈 요약 셀 터치 영역 확보');
 
 // placeholders stay short labels, not sentences (spec section 35)

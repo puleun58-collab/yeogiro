@@ -29,7 +29,7 @@ assert.match(renderer, /add\.disabled=!input\.value\.trim\(\)/, '입력 내용�
 assert.match(renderer, /class="prep-sheet-header"[\s\S]*?<h2>여행 준비<\/h2>[\s\S]*?class="prep-sheet-close" data-close aria-label="여행 준비 닫기">×/, 'sticky 제목과 상단 닫기 버튼 제공');
 assert.doesNotMatch(renderer, /data-close>닫기<\/button>/, '하단 대형 닫기 버튼 제거');
 assert.match(renderer, /state==='required'\?'!':state==='complete'\?'✓':''/, '선택 사항은 상태 아이콘 없이 정렬 공간만 유지');
-assert.match(renderer, /class="prep-checks compact-checks"/, '선택 사항과 완료를 compact 행 목록으로 표시');
+assert.match(renderer, /class="prep-checks compact-checks disclosure-panel"/, '선택 사항과 완료를 ARIA 대상 compact 행 목록으로 표시');
 assert.match(renderer, /enterkeyhint="done"/, '모바일 키보드 완료 힌트 제공');
 assert.match(source, /\$\('#prepAdd input'\)\?\.focus\(\)/, '연속 입력을 위해 추가 후 포커스 복원');
 assert.match(source, /\.prep-sheet-header\{position:sticky/, '여행 준비 헤더가 스크롤 중 고정');

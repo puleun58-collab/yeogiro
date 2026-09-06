@@ -106,8 +106,8 @@ assert.match(source, /dailyAdvice\(day,upcomingHours\)\[0\]\?\.text/, '규칙형
 assert.match(source, /upcomingHours=selected===today\?hours\.filter\(x=>YeogiroTravel\.timeMinutes\(x\.time\?\.slice\(11,16\)\|\|'00:00'\)>=localNow\.minutes\)/, '오늘은 지나간 시간 대신 앞으로의 예보로 안내 시각을 계산');
 assert.match(source, /weather-action-advice/, '행동 가능한 날씨 안내를 상단과 시간대별 예보 사이에 표시');
 assert.match(source, /weather-cache-note[\s\S]*저장된 날씨 · 마지막 업데이트/, '오프라인·오래된 예보를 최신 날씨와 구분');
-assert.match(source, /details class=\"weather-hourly\"><summary><span>시간대별 예보<\/span>[\s\S]*weather-hourly-chevron/, '시간대별 예보 제목과 회전형 chevron 제공');
-assert.match(source, /\.weather-hourly\[open\] \.weather-hourly-chevron\{transform:rotate\(180deg\)\}/, '시간대별 예보 펼침 상태를 chevron 회전으로 표시');
+assert.match(source, /details class="weather-hourly disclosure"><summary class="disclosure-summary"><span>시간대별 예보<\/span>\$\{disclosureChevron\(\)\}<\/summary>/, '시간대별 예보에 공통 SVG chevron 제공');
+assert.match(source, /details\.disclosure\[open\]>summary\.disclosure-summary \.disclosure-chevron,[^{]+\{transform:rotate\(90deg\)\}/, '시간대별 예보 펼침 상태를 공통 chevron 회전으로 표시');
 assert.match(source, /\.weather-hour\{[^}]*flex:0 0 76px;min-width:76px;padding:9px 7px/, '모바일에서 시간대별 카드 3.5개 이상 노출');
 assert.match(source, /\${esc\(x\.time\.slice\(11,13\)\)}시/, '시간대별 예보 시간을 00시 형식으로 간소화');
 assert.match(source, /weather-hour \${isCurrent\?'current':''}[\s\S]*<i>현재<\/i>/, '오늘과 가장 가까운 시간대 카드를 현재로 강조');
@@ -119,7 +119,7 @@ assert.match(source, /날씨 정보를 불러오지 못했습니다\.<\/span><bu
 assert.match(source, /renderTravelGaps\(\);renderWeather\(\)\.catch\(\(\)=>\{\}\)/, '날씨 오류가 일정 렌더링을 막지 않음');
 assert.match(source, /<h2>\$\{current\?'지금':'다음 일정을 준비하세요'\}<\/h2>/, '당일 카드 제목을 현재 상태 중심 문구로 표시');
 assert.match(source, /today-countdown[\s\S]*<small>다음 일정까지<\/small><strong>\${YeogiroTravel\.formatDuration\(remaining\)}<\/strong>/, '다음 일정까지 남은 시간을 두 번째 줄에 강조');
-assert.match(source, /details class="weather-hourly"/, '시간대별 예보는 접은 상태로 제공');
+assert.match(source, /details class="weather-hourly disclosure"/, '시간대별 예보는 접은 상태의 공통 disclosure로 제공');
 assert.match(source, /nearestHourly\(hours,item\.time\)/, '일정 시간과 가장 가까운 예보를 연결');
 assert.match(source, /weather-item-note">☂ 비 가능성/, '야외 일정에만 보조 강수 정보를 표시');
 assert.match(source, /role="img" aria-label="\${esc\(currentCode\.label\)}"[\s\S]*weather-condition/, '날씨를 접근 가능한 아이콘과 글자로 함께 전달');
@@ -170,7 +170,7 @@ assert.match(worker, /countryCode\?\`&countryCode=/, '동명 도시 오인을 �
 assert.match(worker, /CITY_ALIASES\[city\]\|\|city/, '별칭이 없으면 입력한 도시명을 그대로 조회');
 
 // PWA 자산
-assert.match(serviceWorker, /'\/expense-logic\.js\?v=81'/, '경비 로직을 오프라인 캐시에 포함');
-assert.match(serviceWorker, /'\/weather-logic\.js\?v=81'/, '날씨 표시 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/expense-logic\.js\?v=83'/, '경비 로직을 오프라인 캐시에 포함');
+assert.match(serviceWorker, /'\/weather-logic\.js\?v=83'/, '날씨 표시 로직을 오프라인 캐시에 포함');
 
 console.log('137 expense and weather integration checks passed');

@@ -80,6 +80,40 @@ for (const name of assets.filter(x => x !== 'reset')) {
 }
 assert.match(readFileSync('assets/icons/settings/reset.svg', 'utf8'), /#e2452f/, '전체 초기화만 danger 포인트 색을 사용'); check();
 
+// 첨부 원본에서 분리한 데이터 보관 상태·앱 진단 PNG
+const storageStatusFn = slice('async function dataSafetySheet()', 'const APP_BUILD=');
+const diagnosticsStatusFn = slice('async function appDiagnosticsSheet()', 'function searchResults(');
+const statusIcons = [
+  [storageStatusFn, 'storage-status', 'storage-schedule-sync', '일정 및 예약정보'],
+  [storageStatusFn, 'storage-status', 'storage-original-file', '파일 원본'],
+  [storageStatusFn, 'storage-status', 'storage-capacity', '저장 공간'],
+  [storageStatusFn, 'storage-status', 'storage-file-settings', '파일 보관 설정'],
+  [storageStatusFn, 'storage-status', 'storage-recovery-key', '소유권 복구키'],
+  [storageStatusFn, 'storage-status', 'storage-json-backup', 'JSON 백업'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-version', '앱 버전'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-network', '네트워크'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-sync', '동기화'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-current-trip', '현재 여행'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-service-worker', 'Service Worker'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-device-storage', '기기 저장소'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-api-d1', 'API · D1'],
+  [diagnosticsStatusFn, 'diagnostics', 'diagnostics-error', '최근 오류']
+];
+for (const [screen, dir, name, label] of statusIcons) {
+  const assetPath = `assets/icons/${dir}/${name}.png`;
+  assert.ok(screen.includes(`row('/${assetPath}','${label}'`), `${label} 행이 첨부 원본 PNG를 사용`); check();
+  assert.ok(existsSync(assetPath), `${name} PNG가 프로젝트 내부에 존재`); check();
+  const png = readFileSync(assetPath);
+  assert.equal(png.subarray(1, 4).toString(), 'PNG', `${name} 자산이 PNG 형식`); check();
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20), png[25]], [256, 256, 6], `${name} 자산은 라벨 없는 정사각 투명 RGBA 캔버스`); check();
+  assert.ok(worker.includes(`'/${assetPath}'`), `${name} PNG가 오프라인 캐시에 포함`); check();
+}
+assert.equal((storageStatusFn.match(/class="safety-icon"/g) || []).length, 1, '보관 상태 행 템플릿이 이미지 아이콘을 사용'); check();
+assert.equal((diagnosticsStatusFn.match(/class="safety-icon"/g) || []).length, 1, '진단 행 템플릿이 이미지 아이콘을 사용'); check();
+assert.doesNotMatch(storageStatusFn, emoji, '데이터 보관 상태의 임시 이모지 제거'); check();
+assert.doesNotMatch(diagnosticsStatusFn, emoji, '앱 상태 진단의 임시 이모지 제거'); check();
+assert.match(source, /\.safety-icon\{display:block;width:30px;height:30px;object-fit:contain\}/, '상태 화면 아이콘을 현재 30px 박스 안에 동일하게 정렬'); check();
+
 // 출발 전 확인 warning 배지는 메뉴 아이콘과 분리 유지
 assert.match(source, /\.prep-state\.required,\.prep-check\.required \.prep-state\{background:var\(--prep-warning-badge\)/, '준비 경고 배지는 별도 amber 정책을 유지'); check();
 assert.doesNotMatch(source, /prep-state[^{]*\{[^}]*settings-icon/, '경고 배지에 메뉴 아이콘 스타일을 적용하지 않음'); check();

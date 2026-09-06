@@ -23,7 +23,7 @@ assert.match(source, /소유자 관리[\s\S]*소유권 복구키[\s\S]*복구키
 assert.match(source, /data-revoke-session[\s\S]*내 기기 관리/, '실제 세션 기반 기기 관리 제공');
 assert.match(source, /function deviceLinkSheet[\s\S]*<h2>새 기기 연결<\/h2>[\s\S]*기존 기기에서 만든 연결 코드를 입력해 주세요/, '연결 링크 진입 시 연결 코드만 요청');
 assert.doesNotMatch(source, /여행 ID 또는 연결 링크/, '기본 연결 화면에서 여행 ID 입력 제거');
-assert.match(source, /기존 기기에서 연결 링크를 먼저 만들어 주세요[\s\S]*<summary>다른 방법으로 연결<\/summary>[\s\S]*여행 ID 직접 입력/, '직접 진입 시 링크 안내 후 기존 방식을 고급 옵션으로 제공');
+assert.match(source, /기존 기기에서 연결 링크를 먼저 만들어 주세요[\s\S]*<summary class="disclosure-summary"><span>다른 방법으로 연결<\/span>\$\{disclosureChevron\(\)\}<\/summary>[\s\S]*여행 ID 직접 입력/, '직접 진입 시 링크 안내 후 기존 방식을 공통 disclosure로 제공');
 assert.match(source, /name=\"connectToken\"[\s\S]*<label>연결 코드<\/label>/, '링크의 임시 토큰으로 여행을 자동 식별');
 assert.match(source, /formatDeviceCode\(value\)[\s\S]*toUpperCase\(\)[\s\S]*replace\(\/\[\^A-Z2-9\]\/g,''\)[\s\S]*match\(\/.\{1,4\}\/g\)/, '연결 코드는 붙여넣기와 하이픈 자동 입력 지원');
 assert.match(source, /function deviceCodeResult[\s\S]*15분 동안 한 번만[\s\S]*data-copy-device-link[\s\S]*data-share-device-link/, '기존 기기에서 만료 안내와 링크 복사·공유 제공');
@@ -34,7 +34,7 @@ assert.match(worker, /connectId=`dlc_\$\{await hash\(connectToken\)\}`/, '연결
 assert.match(worker, /connectUrl:`\/\?connect_token=\$\{encodeURIComponent\(connectToken\)\}`/, '연결 링크에 여행 ID나 접근 토큰 대신 임시 토큰만 포함');
 assert.match(source, /trip-access-stack[\s\S]*data-open-recovery>여행 불러오기[\s\S]*data-open-device-link>새 기기에 연결/, '여행 목록에서 여행 불러오기와 새 기기 연결 제공');
 assert.match(source, /id="recoveryForm"[\s\S]*소유권 복구키[\s\S]*class="save management-primary-action">여행 불러오기[\s\S]*id="deviceLinkForm"[\s\S]*class="save management-primary-action">이 기기에 연결/, '여행 불러오기와 기기 연결 기본 버튼 규격 통일');
-assert.match(source, /<h2>공유 및 권한<\/h2>[\s\S]*<h3>참여자<\/h3>[\s\S]*<h3>새 초대<\/h3>[\s\S]*<h3>활성 초대 링크<\/h3>[\s\S]*<summary>관리<\/summary>/, '공유 및 권한 화면 정보 순서 유지');
+assert.match(source, /<h2>공유 및 권한<\/h2>[\s\S]*<h3>참여자<\/h3>[\s\S]*<h3>새 초대<\/h3>[\s\S]*<h3>활성 초대 링크<\/h3>[\s\S]*<summary class="disclosure-summary"><span>관리<\/span>\$\{disclosureChevron\(\)\}<\/summary>/, '공유 및 권한 화면 정보 순서와 공통 disclosure 유지');
 assert.match(source, /id="inviteRole"[\s\S]*id="inviteUsage"[\s\S]*id="inviteExpiry"[\s\S]*value="1"[\s\S]*value="7" selected[\s\S]*value="30"/, '초대 권한·사용 방식·만료 선택과 7일 기본값 제공');
 assert.match(source, /value="30">30일<\/option><option value="continuous">계속 사용<\/option>/, '계속 사용을 마지막 만료 옵션으로 제공');
 assert.match(source, /expiry==='continuous'\?null:Number\(expiry\)\|\|7/, '계속 사용은 null 만료로 전달하고 기존 7일 기본값을 유지');
@@ -110,7 +110,7 @@ assert.match(source, /repairFileMetadata\(trip\(\)\)[\s\S]*YeogiroStore\.persist
 assert.match(source, /data-safety-summary[\s\S]*safety-actions/, '데이터 보관 상태 모바일 UI 규격 제공');
 assert.match(source, /data-safety-update>업데이트 확인/, '재설치 없는 앱 업데이트 확인 제공');
 assert.match(source, /protectionState=[\s\S]*\['설정됨'[\s\S]*\['설정 필요'/, '파일 보관 설정 상태 문구 통일');
-assert.match(source, /row\('📌','파일 보관 설정'[\s\S]*data-safety-protect>보관 설정/, '파일 보관 설정의 제목과 버튼 문구 통일');
+assert.match(source, /row\('\/assets\/icons\/storage-status\/storage-file-settings\.png','파일 보관 설정'[\s\S]*data-safety-protect>보관 설정/, '파일 보관 설정의 제목과 버튼 문구 통일');
 assert.doesNotMatch(source, /기기 저장공간|기기 보관 보호|기기 보관 보호하기|파일 보관 보호/, '중복 명사와 오해하기 쉬운 이전 보관 문구 제거');
 assert.match(source, /function appUpdateSheet[\s\S]*data-update-apply>지금 업데이트/, '새 버전 상태와 데이터 보존 안내 화면 제공');
 assert.doesNotMatch(source, /\.review-callout(?:\.[^{,]+)?(?:,[^{]+)?\{[^}]*border-left/, '안내·경고 카드의 장식성 왼쪽 세로선 제거');
@@ -119,7 +119,7 @@ assert.match(source, /class="danger-action" data-confirm-reset[^>]*>백업 없�
 assert.match(source, /YeogiroPwa\.updateState\(YeogiroStore\.status\(\)/, '업데이트 직전에 동기화 상태를 다시 검증');
 assert.match(source, /worker\.postMessage\(\{type:'SKIP_WAITING'\}\)/, '확인한 경우에만 대기 중인 버전을 활성화');
 assert.match(source, /controllerchange[\s\S]*if\(!updateApplying\)return[\s\S]*location\.reload/, '사용자가 적용한 업데이트에서만 다시 불러오기');
-assert.match(source, /register\('\/sw\.js\?v=81',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
+assert.match(source, /register\('\/sw\.js\?v=83',[\s\S]*updateViaCache:'none'/, '최신 서비스 워커를 캐시 우회 등록');
 assert.match(source, /앱 업데이트는 데이터를 지우지 않습니다/, '앱 삭제와 업데이트의 데이터 영향 안내');
 assert.doesNotMatch(source, /dataset\.open==='settings'[\s\S]{0,240}docCabinet/, '설정 화면에 예약 서류함을 다시 삽입하지 않음');
 assert.match(source, /renderDocumentPreview[\s\S]*data-doc-cabinet>서류함 전체 보기/, '홈 예약 서류에서 전체 서류함 접근 유지');
