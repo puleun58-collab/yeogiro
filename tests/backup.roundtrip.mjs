@@ -82,13 +82,17 @@ const [documentMeta] = await store.addFiles([
 const heroMeta = await store.setHero(new Blob(['hero-original'], { type: 'image/jpeg' }), tripId);
 const sourceState = {
   activeId: tripId,
+  accountId: 'secret-account-id',
+  email: 'secret-account@example.test',
+  authSessionToken: 'secret-auth-session',
   trips: [{
     id: tripId, title: '왕복 테스트 여행', start: '2026-08-23', end: '2026-08-24', note: '', cities: ['서울'],
+    googleSub: 'secret-google-sub', recoveryKeyHash: 'secret-recovery-hash', inviteToken: 'secret-invite-token',
     hero: '', heroFileId: heroMeta.id, files: [documentMeta, heroMeta], flights: [], lodgings: [],
     expenses: [{ id: 'expense_source', title: '함께 먹은 저녁', category: '식비', amountMinor: 30000, currency: 'KRW', baseCurrency: 'KRW', rateMicros: 1000000, convertedMinor: 30000, rateUpdatedAt: '', rateSource: 'same-currency', paidByMemberId: 'mem_old_owner', shareMemberIds: ['mem_old_owner', 'mem_old_guest'], spentAt: '2026-08-23', memo: '', linkedType: 'item', linkedId: itemId }],
     expenseMembers: [{ id: 'mem_old_owner', name: '이전 소유자', role: 'owner', revokedAt: '' }],
     expenseSettings: { baseCurrency: 'KRW', budgetMinor: 500000, settledAt: '2026-08-24T00:00:00.000Z', settlementFingerprint: 'old' },
-    items: [{ id: itemId, day: '2026-08-23', time: '10:00', endTime: '', preparationMinutes: 0, cat: '기타', name: '예약 일정', place: '', mapUrl: '', memo: '', move: '', alarm: '', reservationNumber: '', provider: '', lat: null, lng: null, userDocs: [documentMeta] }]
+    items: [{ id: itemId, day: '2026-08-23', time: '10:00', endTime: '', preparationMinutes: 0, cat: '기타', name: '예약 일정', place: '', mapUrl: '', memo: '', move: '', alarm: '', reservationNumber: '', provider: '', lat: null, lng: null, oauthState: 'secret-oauth-state', userDocs: [documentMeta] }]
   }]
 };
 
@@ -100,6 +104,13 @@ const backup = await store.exportBackup(sourceState);
 assert.equal(backup.fileSummary.included, 2, 'backup records both embedded originals');
 assert.match(backup.state.trips[0].items[0].userDocs[0].data, /^data:application\/pdf;base64,/, 'document is embedded');
 assert.match(backup.state.trips[0].heroData, /^data:image\/jpeg;base64,/, 'hero image is embedded');
+const exportedJson = JSON.stringify(backup.state);
+for (const secret of ['secret-account-id', 'secret-account@example.test', 'secret-auth-session', 'secret-google-sub', 'secret-recovery-hash', 'secret-invite-token', 'secret-oauth-state']) {
+  assert.ok(!exportedJson.includes(secret), `export excludes authentication secret: ${secret}`);
+}
+assert.equal(backup.state.accountId, undefined, 'export removes account identifiers');
+assert.equal(backup.state.email, undefined, 'export removes account email');
+assert.equal(backup.state.trips[0].items[0].oauthState, undefined, 'export recursively removes OAuth values');
 let tracked = await store.backupStatus(sourceState);
 assert.equal(tracked.lastBackup, '', '백업 파일 생성만으로 마지막 백업 시각을 갱신하지 않음');
 assert.equal(tracked.changes, 0, '백업 기준점이 없을 때 변경 건수를 추측하지 않음');
@@ -161,4 +172,4 @@ const beforeInvalid = structuredClone(importedAsNew);
 assert.throws(() => store.previewBackup({ format: 'yeogiro-backup-v2', state: { trips: [] } }, importedAsNew), /여행 데이터/);
 assert.deepEqual(importedAsNew, beforeInvalid, 'invalid restore preview does not mutate current data');
 
-console.log('37 backup round-trip checks passed');
+console.log('backup round-trip: all assertions passed');

@@ -84,7 +84,7 @@ async function openApp(context, { onboarded = true } = {}) {
   page.on('request', request => { if (request.url().includes('/api/')) requests.push(`${request.method()} ${request.url().replace(base, '')}`); });
   if (onboarded) await page.addInitScript(() => { try { localStorage.setItem('yeogiro-onboarding-seen', '1'); } catch {} });
   // 설치 안내 모달은 별도 테스트에서 검증한다. 여정 테스트에서는 자동 노출을 끈다.
-  await page.addInitScript(() => { try { localStorage.setItem('yeogiro-install-guide', JSON.stringify({ visits: 1, optOut: true, dismissedAt: '' })); } catch {} });
+  await page.addInitScript(() => { try { localStorage.setItem('yeogiro-login-entry-dismissed', '1'); localStorage.setItem('yeogiro-install-guide', JSON.stringify({ visits: 1, optOut: true, dismissedAt: '' })); } catch {} });
   // Deterministic forecast window (today..+7) so both "예보 가능" and "아직 예보 기간 전" are reachable,
   // and outbound routing stays offline so leg fallbacks are exercised without third-party latency.
   await page.route('**/api/weather*', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cannedForecast()) }));

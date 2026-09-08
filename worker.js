@@ -15,11 +15,6 @@ function randomToken(bytes = 32) {
   const data = crypto.getRandomValues(new Uint8Array(bytes));
   return btoa(String.fromCharCode(...data)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
-function recoveryKey() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', bytes = crypto.getRandomValues(new Uint8Array(20));
-  const value = [...bytes].map(x => alphabet[x & 31]).join('');
-  return value.match(/.{1,4}/g).join('-');
-}
 function deviceLinkCode() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', bytes = crypto.getRandomValues(new Uint8Array(16));
   const value = [...bytes].map(x => alphabet[x & 31]).join('');
@@ -78,7 +73,7 @@ async function memberFor(request, env, tripId) {
 function canEdit(member) { return member && (member.role === 'owner' || member.role === 'editor'); }
 async function rateLimited(request,env,scope,limit=10,seconds=600){const ip=request.headers.get('CF-Connecting-IP')||'local',windowId=Math.floor(Date.now()/(seconds*1000)),key=`${scope}:${await hash(ip)}:${windowId}`,ends=(windowId+1)*seconds*1000,row=await env.DB.prepare('SELECT count FROM rate_limits WHERE key=?').bind(key).first();if((row?.count||0)>=limit)return true;await env.DB.prepare(`INSERT INTO rate_limits (key,count,window_ends_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1`).bind(key,ends).run();if(Math.random()<.02)env.DB.prepare('DELETE FROM rate_limits WHERE window_ends_at<?').bind(Date.now()).run().catch(()=>{});return false}
 async function securityEvent(request,env,tripId,eventType,detail=''){const ip=request.headers.get('CF-Connecting-IP')||'local';try{await env.DB.prepare('INSERT INTO security_events (id,trip_id,event_type,ip_hash,detail,created_at) VALUES (?,?,?,?,?,?)').bind(id('sec'),tripId||null,eventType,await hash(ip),clean(detail,160),now()).run()}catch{}}
-const AUTH_COOKIE='__Host-yeogiro_session',OAUTH_COOKIE='__Host-yeogiro_oauth_state',AUTH_MAX_AGE=30*86400,POLICY_VERSION='1.0';
+const AUTH_COOKIE='__Host-yeogiro_session',OAUTH_COOKIE='__Host-yeogiro_oauth_state',AUTH_MAX_AGE=30*86400,POLICY_VERSION='1.1';
 let googleJwks={uri:'',expires:0,keys:[]};
 function cookieValue(request,name){const source=request.headers.get('Cookie')||'';for(const item of source.split(';')){const index=item.indexOf('=');if(index<0)continue;if(item.slice(0,index).trim()===name)try{return decodeURIComponent(item.slice(index+1).trim())}catch{return''}}return''}
 function secureCookie(name,value,maxAge){return`${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${Math.max(0,Math.floor(maxAge))}; Secure; HttpOnly; SameSite=Lax`}
@@ -339,12 +334,8 @@ async function previewInvite(request,env){
   const token=clean(body.token,200),stamp=now(),invite=token?await env.DB.prepare(`SELECT trip_id,role,expires_at FROM invites WHERE token_hash=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) AND (max_uses IS NULL OR use_count<max_uses)`).bind(await hash(token),stamp).first():null;
   return invite?json({tripId:invite.trip_id,role:invite.role,expiresAt:invite.expires_at}):json({error:'초대 링크가 만료되었거나 비활성화되었습니다.'},404);
 }
-async function issueRecoveryKey(request,env,tripId,member){
-  if(member.role!=='owner')return json({error:'소유자만 긴급 복구 코드를 만들 수 있습니다.'},403);
-  const key=recoveryKey(),stamp=now();
-  await env.DB.prepare('UPDATE trips SET recovery_key_hash=?,recovery_key_created_at=? WHERE id=? AND deleted_at IS NULL').bind(await hash(normalizeRecoveryKey(key)),stamp,tripId).run();
-  await securityEvent(request,env,tripId,'recovery_key_issued');
-  return json({recoveryKey:key,createdAt:stamp,recoveryUrl:`/recover?trip=${encodeURIComponent(tripId)}`},201);
+async function issueRecoveryKey(){
+  return json({error:'신규 복구 코드 발급은 종료되었습니다. 같은 Google 계정으로 로그인해 주세요.'},410);
 }
 async function recoverTrip(request,env){
   let body;try{body=await request.json()}catch{return json({error:'복구 정보를 다시 입력해 주세요.'},400)}

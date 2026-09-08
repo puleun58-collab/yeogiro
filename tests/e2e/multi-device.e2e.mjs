@@ -36,6 +36,7 @@ async function seed(page,trip,accessToken,sessionId,role) {
     const state={activeId:value.trip.id,trips:[value.trip]};
     await new Promise((resolve,reject)=>{const tx=db.transaction(['cache','sessions','outbox'],'readwrite');tx.objectStore('cache').clear();tx.objectStore('sessions').clear();tx.objectStore('outbox').clear();tx.objectStore('cache').put(state,'app-state');tx.objectStore('sessions').put({tripId:value.trip.id,token:value.accessToken,sessionId:value.sessionId,role:value.role,revision:value.trip.revision});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
     localStorage.setItem('yeogiro-data-v1',JSON.stringify(state));
+    localStorage.setItem('yeogiro-login-entry-dismissed','1');
     localStorage.setItem('yeogiro-install-guide',JSON.stringify({visits:1,optOut:true,dismissedAt:''}));
   },{trip,accessToken,sessionId,role});
   await page.goto(base,{waitUntil:'domcontentloaded'});

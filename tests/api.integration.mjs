@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { rmSync, writeFileSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 
 const port = 8791;
@@ -15,6 +17,12 @@ function wrangler(args) {
     : spawnSync(npmCommand, ['wrangler', ...args], { encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.error?.message || result.stderr || result.stdout || 'wrangler command failed');
   return result.stdout;
+}
+function seedRecoveryKey(tripId, recoveryHash) {
+  const file = `.wrangler/recovery-seed-${process.pid}.sql`;
+  writeFileSync(file, `UPDATE trips SET recovery_key_hash='${recoveryHash}', recovery_key_created_at='2026-09-08T00:00:00.000Z' WHERE id='${tripId}';`);
+  try { wrangler(['d1', 'execute', 'yeogiro-db', '--local', '--persist-to', persist, '--file', file]); }
+  finally { rmSync(file, { force: true }); }
 }
 
 async function waitForServer() {
@@ -157,26 +165,19 @@ try {
   assert.equal((await api(`/api/trips/${id}/sessions/${editorJoin.data.sessionId}`, { method: 'PATCH', token: editor, body: { deviceName: '내 iPad' } })).response.status, 200, 'editor도 본인 기기 이름 변경 가능');
   assert.equal((await api(`/api/trips/${id}/sessions/${created.data.sessionId}`, { method: 'PATCH', token: editor, body: { deviceName: '다른 사람 기기' } })).response.status, 403, '다른 사람 기기 이름 변경 거부');
 
-  const issued = await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: owner, body: {} });
-  assert.equal(issued.response.status, 201, 'owner 복구키 생성');
-  assert.match(issued.data.recoveryKey, /^(?:[A-Z2-9]{4}-){4}[A-Z2-9]{4}$/, '복구키 보관 형식');
-  assert.ok(!issued.data.recoveryUrl.includes(issued.data.recoveryKey), '복구 URL에 복구키 미포함');
-  const firstRecoveryKey = issued.data.recoveryKey;
+  const disabledRecovery = await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: owner, body: {} });
+  assert.equal(disabledRecovery.response.status, 410, '신규 복구 코드 발급 중단');
+  assert.match(disabledRecovery.data.error, /Google 계정/, '중단된 발급 경로가 Google 로그인을 안내');
 
+  const legacyRecoveryKey = 'ABCD-EFGH-JKLM-NPQR-STUV';
+  const legacyRecoveryHash = createHash('sha256').update(legacyRecoveryKey.replace(/-/g, '')).digest('hex');
+  seedRecoveryKey(id, legacyRecoveryHash);
   const badRecovery = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: 'AAAA-BBBB-CCCC-DDDD-EEEE', deviceId: 'bad-device' } });
-  assert.equal(badRecovery.response.status, 401, '잘못된 복구키 거부');
-  const recovered = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: firstRecoveryKey, deviceId: 'new-phone', deviceName: '새 휴대폰', platform: 'iOS', clientType: 'pwa' } });
-  assert.equal(recovered.response.status, 201, '올바른 복구키로 owner 세션 생성');
+  assert.equal(badRecovery.response.status, 401, '잘못된 기존 복구 코드 거부');
+  const recovered = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: legacyRecoveryKey, deviceId: 'new-phone', deviceName: '새 휴대폰', platform: 'iOS', clientType: 'pwa' } });
+  assert.equal(recovered.response.status, 201, '이미 발급된 복구 코드로 owner 세션 생성');
   assert.equal(recovered.data.role, 'owner');
   const recoveredToken = recovered.data.accessToken;
-
-  const rotated = await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: owner, body: {} });
-  assert.equal(rotated.response.status, 201, '복구키 재발급');
-  assert.notEqual(rotated.data.recoveryKey, firstRecoveryKey, '새 복구키 원문 변경');
-  const oldRecovery = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: firstRecoveryKey, deviceId: 'old-key-device' } });
-  assert.equal(oldRecovery.response.status, 401, '재발급 후 이전 복구키 사용 불가');
-  const recoveredAgain = await api('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: rotated.data.recoveryKey, deviceId: 'replacement-phone', deviceName: '교체 휴대폰', platform: 'Android', clientType: 'pwa' } });
-  assert.equal(recoveredAgain.response.status, 201, '새 복구키 사용 가능');
 
   const revokedSession = await api(`/api/trips/${id}/sessions/${recovered.data.sessionId}`, { method: 'DELETE', token: owner });
   assert.equal(revokedSession.response.status, 200, '특정 기기 세션 해제');
@@ -190,7 +191,7 @@ try {
   const viewerAccess = await api(`/api/trips/${id}/access`, { token: viewer });
   assert.equal(viewerAccess.response.status, 200, 'viewer도 참여자 목록 확인 가능');
   assert.equal(viewerAccess.data.canManage, false, 'viewer 관리 기능 비활성');
-  assert.equal((await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: editor, body: {} })).response.status, 403, 'editor는 복구키 재발급 불가');
+  assert.equal((await api(`/api/trips/${id}/recovery-key`, { method: 'POST', token: editor, body: {} })).response.status, 410, '모든 사용자에게 신규 복구 코드 발급 중단');
   assert.equal((await api(`/api/trips/${id}/sessions/${created.data.sessionId}`, { method: 'DELETE', token: editor })).response.status, 403, 'editor는 세션 해제 불가');
   assert.equal((await api(`/api/trips/${id}/invites`, { method: 'POST', token: viewer, body: { role: 'editor' } })).response.status, 403, 'viewer 초대 생성 API 거부');
   assert.equal((await api(`/api/trips/${id}/members/${editorMember.id}`, { method: 'PATCH', token: viewer, body: { role: 'viewer' } })).response.status, 403, 'viewer 권한 관리 API 거부');

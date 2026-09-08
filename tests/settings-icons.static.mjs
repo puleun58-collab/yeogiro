@@ -20,8 +20,6 @@ const settingsMenu = [
   ['id="notificationSettings"', 'notifications', '알림 설정'],
   ['id="preparation"', 'travel-prep', '여행 준비'],
   ['id="allIcs"', 'calendar', '전체 일정 캘린더'],
-  ['id="exportJson"', 'json-export', 'JSON 내보내기'],
-  ['id="importJson"', 'json-import', 'JSON 불러오기'],
   ['id="installFromSettings"', 'install', '홈 화면에 추가'],
   ['data-open="help"', 'guide', '여기로 사용법'],
   ['id="appDiagnostics"', 'diagnostics', '앱 상태 진단'],
@@ -39,7 +37,6 @@ for (const [selector, icon, label] of settingsMenu) {
 // 사용법 화면의 액션 항목만 같은 아이콘 세트를 사용
 for (const [selector, icon, label] of [
   ['data-open="shareSettings"', 'sharing', '참여자 초대'],
-  ['data-open="deviceLinkHelp"', 'device-link', '새 기기 연결 방법'],
   ['data-open="preparationHelp"', 'travel-prep', '준비 체크리스트']
 ]) {
   assert.match(
@@ -88,8 +85,6 @@ const statusIcons = [
   [storageStatusFn, 'storage-status', 'storage-original-file', '파일 원본'],
   [storageStatusFn, 'storage-status', 'storage-capacity', '저장 공간'],
   [storageStatusFn, 'storage-status', 'storage-file-settings', '파일 보관 설정'],
-  [storageStatusFn, 'storage-status', 'storage-recovery-key', '소유권 복구키'],
-  [storageStatusFn, 'storage-status', 'storage-json-backup', 'JSON 백업'],
   [diagnosticsStatusFn, 'diagnostics', 'diagnostics-version', '앱 버전'],
   [diagnosticsStatusFn, 'diagnostics', 'diagnostics-network', '네트워크'],
   [diagnosticsStatusFn, 'diagnostics', 'diagnostics-sync', '동기화'],

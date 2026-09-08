@@ -1,4 +1,4 @@
-const APP_CACHE = 'yeogiro-app-v84';
+const APP_CACHE = 'yeogiro-app-v86';
 const MAP_CACHE = 'yeogiro-map-v3';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
@@ -26,6 +26,7 @@ const APP_SHELL = [
   '/assets/icons/icon-512-v8.png',
   '/assets/icons/apple-touch-icon-v8.png',
   '/assets/icons/favicon-32-v8.png',
+  '/assets/icons/auth/google-g.png',
   '/assets/icons/browser-chrome.svg',
   '/assets/icons/browser-safari.svg',
   '/assets/icons/settings/data-storage.svg',
@@ -48,8 +49,6 @@ const APP_SHELL = [
   '/assets/icons/storage-status/storage-original-file.png',
   '/assets/icons/storage-status/storage-capacity.png',
   '/assets/icons/storage-status/storage-file-settings.png',
-  '/assets/icons/storage-status/storage-recovery-key.png',
-  '/assets/icons/storage-status/storage-json-backup.png',
   '/assets/icons/diagnostics/diagnostics-version.png',
   '/assets/icons/diagnostics/diagnostics-network.png',
   '/assets/icons/diagnostics/diagnostics-sync.png',

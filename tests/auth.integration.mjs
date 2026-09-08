@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { generateKeyPairSync, createSign } from 'node:crypto';
+import { generateKeyPairSync, createSign, createHash } from 'node:crypto';
+import { rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -24,6 +25,12 @@ function wrangler(args) {
     : spawnSync('npx', ['wrangler', ...args], { encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.error?.message || result.stderr || result.stdout || 'wrangler command failed');
   return result.stdout;
+}
+function seedRecoveryKey(tripId, recoveryHash) {
+  const file = `.wrangler/auth-recovery-seed-${process.pid}.sql`;
+  writeFileSync(file, `UPDATE trips SET recovery_key_hash='${recoveryHash}', recovery_key_created_at='2026-09-08T00:00:00.000Z' WHERE id='${tripId}';`);
+  try { wrangler(['d1', 'execute', 'yeogiro-db', '--local', '--persist-to', persist, '--file', file]); }
+  finally { rmSync(file, { force: true }); }
 }
 function b64(value) { return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)).toString('base64url'); }
 function idToken({ nonce, sub, name, email }) {
@@ -82,7 +89,7 @@ async function api(route, { method = 'GET', token = '', cookie = '', body, redir
   return { response, data };
 }
 async function login({ sub, name, email, deviceName }) {
-  const start = await api(`/api/auth/google/start?policy=1.0&return_to=%2F&deviceId=${encodeURIComponent(`device-${deviceName}`)}&deviceName=${encodeURIComponent(deviceName)}&platform=Test&clientType=browser`, { redirect: 'manual' });
+  const start = await api(`/api/auth/google/start?policy=1.1&return_to=%2F&deviceId=${encodeURIComponent(`device-${deviceName}`)}&deviceName=${encodeURIComponent(deviceName)}&platform=Test&clientType=browser`, { redirect: 'manual' });
   assert.equal(start.response.status, 302, 'OAuth 시작 리디렉션');
   const stateCookie = cookieFrom(start.response, '__Host-yeogiro_oauth_state');
   const setCookie = start.response.headers.get('set-cookie') || '';
@@ -123,9 +130,11 @@ worker.stderr.on('data', chunk => { workerLog += chunk; });
 
 try {
   await waitForServer();
-  assert.equal((await api('/api/auth/config')).data.googleEnabled, true, 'Google 로그인 운영 설정 감지');
+  const authConfig = await api('/api/auth/config');
+  assert.equal(authConfig.data.googleEnabled, true, 'Google 로그인 운영 설정 감지');
+  assert.equal(authConfig.data.policyVersion, '1.1', '로그인 동의 정책 버전 동기화');
   assert.equal((await api('/api/auth/google/start')).response.status, 400, '정책 버전 없는 로그인 시작 거부');
-  const crossSite = await fetch(`${base}/api/auth/google/start?policy=1.0`, { headers: { 'Sec-Fetch-Site': 'cross-site', 'CF-Connecting-IP': runIp } });
+  const crossSite = await fetch(`${base}/api/auth/google/start?policy=1.1`, { headers: { 'Sec-Fetch-Site': 'cross-site', 'CF-Connecting-IP': runIp } });
   assert.equal(crossSite.status, 403, '교차 사이트 로그인 시작 거부');
 
   const tripId = `auth_trip_${Date.now()}`;
@@ -138,8 +147,8 @@ try {
   const me = await api('/api/auth/me', { cookie: first.authCookie });
   assert.equal(me.response.status, 200, '계정 세션 인증');
   assert.deepEqual({ name: me.data.account.displayName, email: me.data.account.email, provider: me.data.account.provider }, { name: '계정 소유자', email: 'owner@example.test', provider: 'google' }, '검증된 Google 계정 정보 저장');
-  assert.equal(me.data.policies.termsVersion, '1.0', '이용약관 버전 기록');
-  assert.equal(me.data.policies.privacyVersion, '1.0', '개인정보 처리방침 버전 기록');
+  assert.equal(me.data.policies.termsVersion, '1.1', '이용약관 버전 기록');
+  assert.equal(me.data.policies.privacyVersion, '1.1', '개인정보 처리방침 버전 기록');
 
   const rejectedReplay = await api(first.callbackPath, { cookie: first.stateCookie, redirect: 'manual' });
   assert.match(rejectedReplay.response.headers.get('location') || '', /auth=failed/, 'OAuth state 재사용 거부');
@@ -174,12 +183,16 @@ try {
   assert.equal(blockedDelete.response.status, 409, '소유 여행이 있는 계정 삭제 차단');
   assert.equal(blockedDelete.data.ownedTrips[0].id, tripId, '삭제 차단 원인 여행 반환');
 
-  const recovery = await api(`/api/trips/${tripId}/recovery-key`, { method: 'POST', token: ownerToken, body: {} });
+  const disabledRecovery = await api(`/api/trips/${tripId}/recovery-key`, { method: 'POST', token: ownerToken, body: {} });
+  assert.equal(disabledRecovery.response.status, 410, '계정 여행도 신규 복구 코드 발급 중단');
+  const legacyRecoveryKey = 'WXYZ-2345-6789-ABCD-EFGH';
+  const legacyRecoveryHash = createHash('sha256').update(legacyRecoveryKey.replace(/-/g, '')).digest('hex');
+  seedRecoveryKey(tripId, legacyRecoveryHash);
   const rescue = await login({ sub: 'rescue-google-id', name: '복구 계정', email: 'rescue@example.test', deviceName: '복구 기기' });
-  const needsConfirmation = await api('/api/recovery/redeem', { method: 'POST', cookie: rescue.authCookie, body: { tripId, recoveryKey: recovery.data.recoveryKey, deviceId: 'rescue', deviceName: '복구 기기', platform: 'Test', clientType: 'browser' } });
+  const needsConfirmation = await api('/api/recovery/redeem', { method: 'POST', cookie: rescue.authCookie, body: { tripId, recoveryKey: legacyRecoveryKey, deviceId: 'rescue', deviceName: '복구 기기', platform: 'Test', clientType: 'browser' } });
   assert.equal(needsConfirmation.response.status, 409, '다른 계정으로 긴급 복구 시 확인 요구');
   assert.equal(needsConfirmation.data.confirmationRequired, true, '계정 이전 확인 플래그 반환');
-  const recovered = await api('/api/recovery/redeem', { method: 'POST', cookie: rescue.authCookie, body: { tripId, recoveryKey: recovery.data.recoveryKey, confirmTransfer: true, deviceId: 'rescue', deviceName: '복구 기기', platform: 'Test', clientType: 'browser' } });
+  const recovered = await api('/api/recovery/redeem', { method: 'POST', cookie: rescue.authCookie, body: { tripId, recoveryKey: legacyRecoveryKey, confirmTransfer: true, deviceId: 'rescue', deviceName: '복구 기기', platform: 'Test', clientType: 'browser' } });
   assert.equal(recovered.response.status, 201, '확인 후 현재 계정으로 긴급 복구');
   assert.equal(recovered.data.accountLinked, true, '복구 membership 현재 계정 연결');
   assert.equal((await api(`/api/trips/${tripId}`, { token: ownerToken })).response.status, 200, '계정 이전 후에도 기존 기기 접근 호환');
