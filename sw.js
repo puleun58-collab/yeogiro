@@ -1,21 +1,26 @@
-const APP_CACHE = 'yeogiro-app-v83';
+const APP_CACHE = 'yeogiro-app-v84';
 const MAP_CACHE = 'yeogiro-map-v3';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/data-integrity.js?v=83',
-  '/diagnostics.js?v=83',
-  '/expense-logic.js?v=83',
-  '/weather-logic.js?v=83',
-  '/sync.js?v=83',
-  '/sync-ui.js?v=83',
-  '/travel-logic.js?v=83',
-  '/notification-logic.js?v=83',
-  '/preparation-logic.js?v=83',
-  '/trip-recap-logic.js?v=83',
-  '/pwa-update.js?v=83',
+  '/data-integrity.js?v=84',
+  '/diagnostics.js?v=84',
+  '/expense-logic.js?v=84',
+  '/weather-logic.js?v=84',
+  '/sync.js?v=84',
+  '/sync-ui.js?v=84',
+  '/travel-logic.js?v=84',
+  '/notification-logic.js?v=84',
+  '/preparation-logic.js?v=84',
+  '/trip-recap-logic.js?v=84',
+  '/pwa-update.js?v=84',
   '/offline.html',
+  '/privacy',
+  '/terms',
+  '/privacy.html',
+  '/terms.html',
+  '/legal.css',
   '/manifest.webmanifest',
   '/assets/icons/icon-192-v8.png',
   '/assets/icons/icon-512-v8.png',
@@ -37,6 +42,8 @@ const APP_SHELL = [
   '/assets/icons/settings/reset.svg',
   '/assets/icons/settings/install.svg',
   '/assets/icons/settings/device-link.svg',
+  '/assets/icons/settings/legal-privacy.svg',
+  '/assets/icons/settings/legal-terms.svg',
   '/assets/icons/storage-status/storage-schedule-sync.png',
   '/assets/icons/storage-status/storage-original-file.png',
   '/assets/icons/storage-status/storage-capacity.png',
@@ -69,11 +76,12 @@ self.addEventListener('activate', event => {
 
 async function networkFirst(request) {
   const cache = await caches.open(APP_CACHE);
+  const url = new URL(request.url);
   try {
     const response = await fetch(request);
     if (response.ok) {
       cache.put(request, response.clone());
-      if (request.mode === 'navigate') {
+      if (request.mode === 'navigate' && (url.pathname === '/' || url.pathname === '/index.html')) {
         cache.put('/index.html', response.clone());
         cache.put('/', response.clone());
       }
@@ -82,7 +90,11 @@ async function networkFirst(request) {
   } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
-    if (request.mode === 'navigate') return (await cache.match('/index.html')) || cache.match('/offline.html');
+    if (request.mode === 'navigate') {
+      if (url.pathname === '/privacy') return (await cache.match('/privacy')) || cache.match('/privacy.html');
+      if (url.pathname === '/terms') return (await cache.match('/terms')) || cache.match('/terms.html');
+      return (await cache.match('/index.html')) || cache.match('/offline.html');
+    }
     return new Response('', { status: 503, statusText: 'Offline' });
   }
 }

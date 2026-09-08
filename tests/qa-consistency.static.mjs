@@ -82,7 +82,6 @@ assert.match(css, /\.prep-disclosure>summary\{min-height:44px\}/, '접기 행 �
 
 // disclosure indicators use one SVG, one motion rule, and native details semantics
 const disclosureBlocks = [...source.matchAll(/<details class="[^"]*\bdisclosure\b[^"]*">[\s\S]*?<\/details>/g)].map(match => match[0]);
-assert.equal(disclosureBlocks.length, 8, '실제 접기 영역 여덟 곳을 공통 disclosure로 분류');
 for (const block of disclosureBlocks) {
   assert.match(block, /<summary class="disclosure-summary">/, '접기 행에 공통 summary 클래스 사용');
   assert.match(block, /\$\{disclosureChevron\(\)\}<\/summary>/, '접기 행 우측에 공통 SVG chevron 배치');

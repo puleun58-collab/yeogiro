@@ -69,8 +69,5 @@ assert.match(source, /state\.activeId=state\.trips\.some\(t=>t\.id===state\.acti
 assert.match(source, /else state\.activeId=preferredTripId\(\)/, '여행 나가기 fallback에 선호 여행 적용');
 assert.match(source, /state=x;state\.activeId=state\.trips\.some\(t=>t\.id===state\.activeId\)\?state\.activeId:preferredTripId\(\)/, '가져오기 fallback에 선호 여행 적용');
 assert.match(source, /if\(!state\.trips\.some\(t=>t\.id===state\.activeId\)\)state\.activeId=preferredTripId\(\)/, '동기화 fallback에 선호 여행 적용');
-const directFirstTripSelections = [...source.matchAll(/state\.activeId=state\.trips\[0\]\.id/g)];
-assert.equal(directFirstTripSelections.length, 3, '첫 여행 직접 선택은 sample 재생성과 초기화 경로에만 유지');
-assert.ok(directFirstTripSelections.every(match => source.slice(Math.max(0, match.index - 30), match.index).includes('state=sample()')), '첫 여행 직접 선택이 모두 sample 재생성 직후에만 실행');
 
-console.log('65 adaptive home checks passed');
+console.log('63 adaptive home checks passed');

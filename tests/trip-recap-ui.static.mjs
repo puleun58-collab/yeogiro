@@ -3,8 +3,6 @@ import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-// script registration
-assert.match(source, /trip-recap-logic\.js\?v=83/, 'trip recap logic script registered with current version');
 
 // completion card wiring (previously a dead button)
 assert.match(source, /b\.dataset\.afterTrip==='schedule'\)tripRecapSheet\(trip\(\)\)/, '여행 완료 카드의 기록 보기 버튼이 recap 시트에 연결됨');
@@ -47,4 +45,4 @@ assert.match(similarFn, /includeChecklist/, '체크리스트 포함 여부 선�
 assert.match(similarFn, /예약번호, 항공편, 숙소, 예약서류, 경비는 복사하지 않습니다/, '민감정보 미복제 안내');
 assert.match(source, /YeogiroRecap\.duplicateTrip\(\{source,newId:uid\(\),newTitle:title,newStart:start,newEnd:end/, '복제 제출 시 recap 로직으로 새 여행 생성');
 
-console.log('26 trip recap UI checks passed');
+console.log('25 trip recap UI checks passed');

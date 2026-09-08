@@ -3,6 +3,12 @@
   "name": "yeogiro",
   "main": "./worker.js",
   "compatibility_date": "2026-08-21",
+  "vars": {
+    "APP_ORIGIN": "https://yeogiro.puleun58.workers.dev"
+  },
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  },
   "ai": {
     "binding": "AI"
   },
@@ -18,8 +24,12 @@
     "binding": "ASSETS",
     "directory": "./dist",
     "not_found_handling": "single-page-application",
+    "html_handling": "none",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/privacy",
+      "/terms",
+      "/offline"
     ]
   }
 }

@@ -104,7 +104,7 @@ assert.equal(Diag.report({}).includes('최근 오류: 없음'), true, '오류가
 // ---- app wiring ----
 const html = readFileSync('index.html', 'utf8');
 assert.match(html, /<meta name="yeogiro-build" content="__APP_BUILD__">/, '빌드 식별자 자리표시자 존재'); check();
-assert.match(html, /<script src="\/diagnostics\.js\?v=83"><\/script>/, '진단 모듈 로드'); check();
+assert.match(html, /<script src="\/diagnostics\.js\?v=\d+"><\/script>/, '진단 모듈 로드'); check();
 assert.match(html, /id="appDiagnostics"/, '설정에서 진단 화면 진입'); check();
 assert.match(html, /async function appDiagnosticsSheet\(\)/, '진단 시트 구현'); check();
 assert.match(html, /YeogiroStore\.diagnostics\(\)/, '저장소 상태 조회'); check();

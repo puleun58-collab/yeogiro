@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, rmSync, mkdirSync, copyFileSync, cpSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const FILES = ['index.html', 'sync.js', 'sync-ui.js', 'travel-logic.js', 'notification-logic.js', 'preparation-logic.js', 'trip-recap-logic.js', 'data-integrity.js', 'diagnostics.js', 'expense-logic.js', 'weather-logic.js', 'pwa-update.js', 'offline.html', 'manifest.webmanifest', 'sw.js'];
+const FILES = ['index.html', 'privacy.html', 'terms.html', 'legal.css', 'sync.js', 'sync-ui.js', 'travel-logic.js', 'notification-logic.js', 'preparation-logic.js', 'trip-recap-logic.js', 'data-integrity.js', 'diagnostics.js', 'expense-logic.js', 'weather-logic.js', 'pwa-update.js', 'offline.html', 'manifest.webmanifest', 'sw.js'];
 const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
 let commit = '';
 try { commit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim(); } catch {}

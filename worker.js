@@ -48,19 +48,129 @@ function coord(value) { if (value === null || value === undefined || value === '
 function convertedExpenseMinor(x){if(x.currency===x.baseCurrency)return x.amountMinor;if(!x.rateMicros)return 0;const numerator=BigInt(x.amountMinor)*BigInt(x.rateMicros)*10n**BigInt(CURRENCY_DIGITS[x.baseCurrency]),denominator=1000000n*10n**BigInt(CURRENCY_DIGITS[x.currency]);return Number((numerator+denominator/2n)/denominator)}
 function blobDataUrl(data,mime){const bytes=data instanceof Uint8Array?data:new Uint8Array(data),parts=[];for(let i=0;i<bytes.length;i+=32768)parts.push(String.fromCharCode(...bytes.subarray(i,i+32768)));return`data:${mime};base64,${btoa(parts.join(''))}`}
 
+async function authAccountFor(request,env){
+  const token=cookieValue(request,'__Host-yeogiro_session');
+  if(!token)return null;
+  const stamp=now(),session=await env.DB.prepare(`SELECT a.id,a.display_name,a.email,a.avatar_url,a.terms_version,a.terms_agreed_at,a.privacy_version,a.privacy_agreed_at,s.id AS auth_session_id,s.device_id,s.device_name,s.platform,s.client_type,s.created_at,s.last_seen_at,s.expires_at
+    FROM auth_sessions s JOIN accounts a ON a.id=s.account_id
+    WHERE s.session_token_hash=? AND s.revoked_at IS NULL AND s.expires_at>?`).bind(await hash(token),stamp).first();
+  if(!session)return null;
+  env.DB.prepare('UPDATE auth_sessions SET last_seen_at=? WHERE id=?').bind(stamp,session.auth_session_id).run().catch(()=>{});
+  return session;
+}
 async function memberFor(request, env, tripId) {
   const token = bearer(request);
-  if (!token) return null;
-  const member = await env.DB.prepare(`SELECT m.id, m.trip_id, m.display_name, m.role, s.id AS session_id
+  let member=null;
+  if(token)member=await env.DB.prepare(`SELECT m.id,m.trip_id,m.display_name,m.role,m.account_id,s.id AS session_id
     FROM sessions s JOIN members m ON m.id=s.member_id
     WHERE s.token_hash=? AND s.revoked_at IS NULL AND m.revoked_at IS NULL`).bind(await hash(token)).first();
+  else{
+    const account=await authAccountFor(request,env);
+    if(account)member=await env.DB.prepare(`SELECT m.id,m.trip_id,m.display_name,m.role,m.account_id,? AS session_id
+      FROM members m WHERE m.account_id=? AND m.revoked_at IS NULL AND m.trip_id=?`).bind(account.auth_session_id,account.id,tripId).first();
+  }
   if (!member || (tripId && member.trip_id !== tripId)) return null;
-  const stamp=now();env.DB.batch([env.DB.prepare('UPDATE sessions SET last_seen_at=? WHERE id=?').bind(stamp,member.session_id),env.DB.prepare('UPDATE members SET last_seen_at=? WHERE id=?').bind(stamp,member.id)]).catch(()=>{});
+  const stamp=now(),updates=[env.DB.prepare('UPDATE members SET last_seen_at=? WHERE id=?').bind(stamp,member.id)];
+  if(token)updates.unshift(env.DB.prepare('UPDATE sessions SET last_seen_at=? WHERE id=?').bind(stamp,member.session_id));
+  env.DB.batch(updates).catch(()=>{});
   return member;
 }
 function canEdit(member) { return member && (member.role === 'owner' || member.role === 'editor'); }
-async function rateLimited(request,env,scope,limit=10,seconds=600){const ip=request.headers.get('CF-Connecting-IP')||'local',windowId=Math.floor(Date.now()/(seconds*1000)),key=`${scope}:${ip}:${windowId}`,ends=(windowId+1)*seconds*1000,row=await env.DB.prepare('SELECT count FROM rate_limits WHERE key=?').bind(key).first();if((row?.count||0)>=limit)return true;await env.DB.prepare(`INSERT INTO rate_limits (key,count,window_ends_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1`).bind(key,ends).run();if(Math.random()<.02)env.DB.prepare('DELETE FROM rate_limits WHERE window_ends_at<?').bind(Date.now()).run().catch(()=>{});return false}
+async function rateLimited(request,env,scope,limit=10,seconds=600){const ip=request.headers.get('CF-Connecting-IP')||'local',windowId=Math.floor(Date.now()/(seconds*1000)),key=`${scope}:${await hash(ip)}:${windowId}`,ends=(windowId+1)*seconds*1000,row=await env.DB.prepare('SELECT count FROM rate_limits WHERE key=?').bind(key).first();if((row?.count||0)>=limit)return true;await env.DB.prepare(`INSERT INTO rate_limits (key,count,window_ends_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1`).bind(key,ends).run();if(Math.random()<.02)env.DB.prepare('DELETE FROM rate_limits WHERE window_ends_at<?').bind(Date.now()).run().catch(()=>{});return false}
 async function securityEvent(request,env,tripId,eventType,detail=''){const ip=request.headers.get('CF-Connecting-IP')||'local';try{await env.DB.prepare('INSERT INTO security_events (id,trip_id,event_type,ip_hash,detail,created_at) VALUES (?,?,?,?,?,?)').bind(id('sec'),tripId||null,eventType,await hash(ip),clean(detail,160),now()).run()}catch{}}
+const AUTH_COOKIE='__Host-yeogiro_session',OAUTH_COOKIE='__Host-yeogiro_oauth_state',AUTH_MAX_AGE=30*86400,POLICY_VERSION='1.0';
+let googleJwks={uri:'',expires:0,keys:[]};
+function cookieValue(request,name){const source=request.headers.get('Cookie')||'';for(const item of source.split(';')){const index=item.indexOf('=');if(index<0)continue;if(item.slice(0,index).trim()===name)try{return decodeURIComponent(item.slice(index+1).trim())}catch{return''}}return''}
+function secureCookie(name,value,maxAge){return`${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${Math.max(0,Math.floor(maxAge))}; Secure; HttpOnly; SameSite=Lax`}
+function redirect(location,cookieHeaders=[]){const headers=new Headers({Location:location,'Cache-Control':'no-store'});for(const value of cookieHeaders)headers.append('Set-Cookie',value);return new Response(null,{status:302,headers})}
+function safeReturnTo(value){value=clean(value,300);return value.startsWith('/')&&!value.startsWith('//')?value:'/'}
+function base64Url(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function base64UrlBytes(value){const raw=value.replace(/-/g,'+').replace(/_/g,'/'),decoded=atob(raw+'='.repeat((4-raw.length%4)%4));return Uint8Array.from(decoded,x=>x.charCodeAt(0))}
+async function authEvent(request,env,eventType,accountId=null){const ip=request.headers.get('CF-Connecting-IP')||'local';try{await env.DB.prepare('INSERT INTO auth_events (id,account_id,event_type,ip_hash,created_at) VALUES (?,?,?,?,?)').bind(id('aev'),accountId,eventType,await hash(ip),now()).run()}catch{}}
+function oauthOrigin(env,url){const candidate=String(env.APP_ORIGIN||'').split(',').map(x=>x.trim()).find(Boolean)||url.origin;try{const parsed=new URL(candidate),local=parsed.hostname==='localhost'||parsed.hostname==='127.0.0.1';if(parsed.protocol!=='https:'&&!(local&&parsed.protocol==='http:'))throw new Error('insecure origin');return parsed.origin}catch{return url.protocol==='https:'?url.origin:'https://invalid.local'}}
+async function verifyGoogleIdToken(token,env,expectedNonce){
+  const parts=String(token||'').split('.');if(parts.length!==3)throw new Error('invalid id token');
+  let header,claims;try{header=JSON.parse(new TextDecoder().decode(base64UrlBytes(parts[0])));claims=JSON.parse(new TextDecoder().decode(base64UrlBytes(parts[1])))}catch{throw new Error('invalid id token')}
+  if(header.alg!=='RS256'||!header.kid)throw new Error('invalid id token');
+  const jwksUri=env.GOOGLE_JWKS_URI||'https://www.googleapis.com/oauth2/v3/certs';
+  if(googleJwks.uri!==jwksUri||googleJwks.expires<Date.now()){const response=await fetch(jwksUri,{headers:{Accept:'application/json'}});if(!response.ok)throw new Error('jwks unavailable');const body=await response.json();googleJwks={uri:jwksUri,expires:Date.now()+3600000,keys:Array.isArray(body.keys)?body.keys:[]}}
+  const jwk=googleJwks.keys.find(x=>x.kid===header.kid&&x.kty==='RSA');if(!jwk)throw new Error('signing key unavailable');
+  const key=await crypto.subtle.importKey('jwk',jwk,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']),signed=new TextEncoder().encode(`${parts[0]}.${parts[1]}`),valid=await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,base64UrlBytes(parts[2]),signed);
+  const seconds=Math.floor(Date.now()/1000),audiences=Array.isArray(claims.aud)?claims.aud:[claims.aud];
+  if(!valid||!['accounts.google.com','https://accounts.google.com'].includes(claims.iss)||!audiences.includes(env.GOOGLE_CLIENT_ID)||(audiences.length>1&&claims.azp!==env.GOOGLE_CLIENT_ID)||Number(claims.exp)<=seconds||Number(claims.iat)>seconds+300||!constantEqual(claims.nonce,expectedNonce)||!claims.sub||!(claims.email_verified===true||claims.email_verified==='true'))throw new Error('invalid id token');
+  return claims;
+}
+async function googleStart(request,env,url){
+  if(request.headers.get('Sec-Fetch-Site')==='cross-site')return json({error:'허용되지 않은 로그인 요청입니다.'},403);if(url.searchParams.get('policy')!==POLICY_VERSION)return json({error:'이용약관과 개인정보 처리방침 확인이 필요합니다.'},400);
+  if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET)return json({error:'Google 로그인이 아직 운영 설정에 연결되지 않았습니다.'},503);
+  if(await rateLimited(request,env,'google-login-start',30,600))return json({error:'로그인 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429);
+  const state=randomToken(32),nonce=randomToken(32),verifier=randomToken(64),challenge=base64Url(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier)))),stamp=now(),expiresAt=new Date(Date.now()+10*60000).toISOString(),origin=oauthOrigin(env,url),redirectUri=`${origin}/api/auth/google/callback`,device=deviceMeta(Object.fromEntries(url.searchParams)),returnTo=safeReturnTo(url.searchParams.get('return_to'));
+  await env.DB.prepare(`INSERT INTO oauth_transactions (state_hash,nonce,code_verifier,redirect_uri,return_to,device_id,device_name,platform,client_type,created_at,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).bind(await hash(state),nonce,verifier,redirectUri,returnTo,device.deviceId,device.deviceName,device.platform,device.clientType,stamp,expiresAt).run();
+  env.DB.prepare('DELETE FROM oauth_transactions WHERE expires_at<?').bind(stamp).run().catch(()=>{});
+  const target=new URL(env.GOOGLE_AUTHORIZATION_ENDPOINT||'https://accounts.google.com/o/oauth2/v2/auth');for(const[key,value]of Object.entries({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirectUri,response_type:'code',scope:'openid email profile',state,nonce,code_challenge:challenge,code_challenge_method:'S256',prompt:'select_account'}))target.searchParams.set(key,value);
+  return redirect(target.href,[secureCookie(OAUTH_COOKIE,state,600)]);
+}
+async function googleCallback(request,env,url){
+  if(await rateLimited(request,env,'google-login-callback',60,600))return redirect(`${oauthOrigin(env,url)}/?auth=failed`,[secureCookie(OAUTH_COOKIE,'',0)]);
+  const fallback=`${oauthOrigin(env,url)}/?auth=failed`,state=clean(url.searchParams.get('state'),200),bound=cookieValue(request,OAUTH_COOKIE),code=clean(url.searchParams.get('code'),1000);
+  if(url.searchParams.get('error')||!state||!code||!constantEqual(state,bound)){await authEvent(request,env,'google_callback_rejected');return redirect(fallback,[secureCookie(OAUTH_COOKIE,'',0)])}
+  const stamp=now(),transaction=await env.DB.prepare('SELECT * FROM oauth_transactions WHERE state_hash=? AND consumed_at IS NULL AND expires_at>?').bind(await hash(state),stamp).first();
+  if(!transaction){await authEvent(request,env,'google_state_rejected');return redirect(fallback,[secureCookie(OAUTH_COOKIE,'',0)])}
+  const claimed=await env.DB.prepare('UPDATE oauth_transactions SET consumed_at=? WHERE state_hash=? AND consumed_at IS NULL').bind(stamp,transaction.state_hash).run();if(!claimed.meta?.changes)return redirect(fallback,[secureCookie(OAUTH_COOKIE,'',0)]);
+  try{
+    const tokenResponse=await fetch(env.GOOGLE_TOKEN_ENDPOINT||'https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({code,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,redirect_uri:transaction.redirect_uri,grant_type:'authorization_code',code_verifier:transaction.code_verifier})});
+    const tokens=await tokenResponse.json().catch(()=>({}));if(!tokenResponse.ok||!tokens.id_token)throw new Error('token exchange failed');
+    const claims=await verifyGoogleIdToken(tokens.id_token,env,transaction.nonce),identityHash=(await hash(`google:${claims.sub}`)).slice(0,32),identity=await env.DB.prepare(`SELECT account_id FROM auth_identities WHERE provider='google' AND provider_user_id=?`).bind(clean(claims.sub,255)).first(),accountId=identity?.account_id||`acct_${identityHash}`,identityId=`aid_google_${identityHash}`,displayName=clean(claims.name,80)||'여기로 사용자',email=clean(claims.email,320),avatar=clean(claims.picture,1000),sessionToken=randomToken(48),sessionId=id('authses'),expiresAt=new Date(Date.now()+AUTH_MAX_AGE*1000).toISOString(),oldToken=cookieValue(request,AUTH_COOKIE),statements=[];
+    statements.push(env.DB.prepare(`INSERT INTO accounts (id,display_name,email,avatar_url,terms_version,terms_agreed_at,privacy_version,privacy_agreed_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,email=excluded.email,avatar_url=excluded.avatar_url,terms_version=excluded.terms_version,terms_agreed_at=excluded.terms_agreed_at,privacy_version=excluded.privacy_version,privacy_agreed_at=excluded.privacy_agreed_at,updated_at=excluded.updated_at`).bind(accountId,displayName,email,avatar,POLICY_VERSION,stamp,POLICY_VERSION,stamp,stamp,stamp));
+    statements.push(env.DB.prepare(`INSERT INTO auth_identities (id,account_id,provider,provider_user_id,email_verified,created_at,updated_at) VALUES (?,?,?,?,1,?,?) ON CONFLICT(provider,provider_user_id) DO UPDATE SET email_verified=1,updated_at=excluded.updated_at`).bind(identityId,accountId,'google',clean(claims.sub,255),stamp,stamp));
+    if(oldToken)statements.push(env.DB.prepare('UPDATE auth_sessions SET revoked_at=? WHERE session_token_hash=? AND revoked_at IS NULL').bind(stamp,await hash(oldToken)));
+    statements.push(env.DB.prepare(`INSERT INTO auth_sessions (id,account_id,session_token_hash,device_id,device_name,platform,client_type,created_at,last_seen_at,expires_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(sessionId,accountId,await hash(sessionToken),transaction.device_id,transaction.device_name,transaction.platform,transaction.client_type,stamp,stamp,expiresAt));
+    await env.DB.batch(statements);await authEvent(request,env,'google_login_succeeded',accountId);
+    const destination=new URL(safeReturnTo(transaction.return_to),oauthOrigin(env,url));destination.searchParams.set('auth','success');
+    return redirect(destination.href,[secureCookie(OAUTH_COOKIE,'',0),secureCookie(AUTH_COOKIE,sessionToken,AUTH_MAX_AGE)]);
+  }catch{await authEvent(request,env,'google_login_failed');return redirect(fallback,[secureCookie(OAUTH_COOKIE,'',0)])}
+}
+async function authMe(request,env){const account=await authAccountFor(request,env);if(!account)return json({authenticated:false},401);return json({authenticated:true,account:{id:account.id,displayName:account.display_name,email:account.email,avatarUrl:account.avatar_url,provider:'google'},session:{id:account.auth_session_id,deviceId:account.device_id,deviceName:account.device_name,platform:account.platform,clientType:account.client_type,createdAt:account.created_at,lastSeenAt:account.last_seen_at,expiresAt:account.expires_at},policies:{termsVersion:account.terms_version,termsAgreedAt:account.terms_agreed_at,privacyVersion:account.privacy_version,privacyAgreedAt:account.privacy_agreed_at}})}
+async function authConfig(env){return json({googleEnabled:Boolean(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET),policyVersion:POLICY_VERSION})}
+async function authLogout(request,env){const token=cookieValue(request,AUTH_COOKIE),account=await authAccountFor(request,env);if(token)await env.DB.prepare('UPDATE auth_sessions SET revoked_at=? WHERE session_token_hash=? AND revoked_at IS NULL').bind(now(),await hash(token)).run();if(account)await authEvent(request,env,'logout',account.id);return new Response(null,{status:204,headers:{'Set-Cookie':secureCookie(AUTH_COOKIE,'',0),'Cache-Control':'no-store'}})}
+async function accountTrips(request,env){const account=await authAccountFor(request,env);if(!account)return json({error:'로그인이 필요합니다.'},401);const rows=await env.DB.prepare(`SELECT m.id,m.trip_id,m.role FROM members m JOIN trips t ON t.id=m.trip_id WHERE m.account_id=? AND m.revoked_at IS NULL AND t.deleted_at IS NULL ORDER BY t.updated_at DESC`).bind(account.id).all(),trips=[];for(const row of rows.results)trips.push({trip:await loadTrip(env,row.trip_id,true),memberId:row.id,role:row.role});return json({trips})}
+async function claimTrip(request,env,tripId){
+  const account=await authAccountFor(request,env);if(!account)return json({error:'로그인이 필요합니다.'},401);
+  if(await rateLimited(request,env,`account-claim:${account.id}`,30,600))return json({error:'여행 연결 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429);
+  const member=await memberFor(request,env,tripId);if(!bearer(request)||!member)return json({error:'현재 기기의 유효한 여행 접근 정보가 필요합니다.'},401);
+  if(member.account_id&&member.account_id!==account.id)return json({error:'이 여행은 이미 다른 계정에 연결되어 있습니다.'},409);
+  const duplicate=await env.DB.prepare('SELECT id FROM members WHERE trip_id=? AND account_id=? AND id<>? AND revoked_at IS NULL').bind(tripId,account.id,member.id).first();if(duplicate)return json({error:'이 계정에 이미 연결된 여행입니다.'},409);
+  await env.DB.prepare('UPDATE members SET account_id=? WHERE id=? AND trip_id=? AND (account_id IS NULL OR account_id=?)').bind(account.id,member.id,tripId,account.id).run();await authEvent(request,env,'membership_claimed',account.id);
+  return json({tripId,memberId:member.id,role:member.role});
+}
+async function accountSessions(request,env){
+  const account=await authAccountFor(request,env);if(!account)return json({error:'로그인이 필요합니다.'},401);
+  const rows=await env.DB.prepare('SELECT id,device_id,device_name,platform,client_type,created_at,last_seen_at,expires_at,revoked_at FROM auth_sessions WHERE account_id=? ORDER BY COALESCE(last_seen_at,created_at) DESC').bind(account.id).all();
+  return json({sessions:rows.results.map(x=>({...x,current:x.id===account.auth_session_id}))});
+}
+async function updateAccountSession(request,env,sessionId){
+  const account=await authAccountFor(request,env);if(!account)return json({error:'로그인이 필요합니다.'},401);const body=await request.json().catch(()=>({})),target=await env.DB.prepare('SELECT id,platform FROM auth_sessions WHERE id=? AND account_id=? AND revoked_at IS NULL').bind(sessionId,account.id).first();if(!target)return json({error:'로그인된 기기를 찾을 수 없습니다.'},404);const name=clean(body.deviceName,40)||clean(target.platform,40)||'로그인된 기기';await env.DB.prepare('UPDATE auth_sessions SET device_name=? WHERE id=?').bind(name,sessionId).run();return json({id:sessionId,deviceName:name});
+}
+async function revokeAccountSession(request,env,sessionId){
+  const account=await authAccountFor(request,env);if(!account)return json({error:'로그인이 필요합니다.'},401);
+  const target=await env.DB.prepare('SELECT id FROM auth_sessions WHERE id=? AND account_id=? AND revoked_at IS NULL').bind(sessionId,account.id).first();if(!target)return json({error:'이미 로그아웃했거나 기기를 찾을 수 없습니다.'},404);
+  await env.DB.prepare('UPDATE auth_sessions SET revoked_at=? WHERE id=?').bind(now(),sessionId).run();
+  const current=sessionId===account.auth_session_id,headers=new Headers({'Cache-Control':'no-store'});if(current)headers.set('Set-Cookie',secureCookie(AUTH_COOKIE,'',0));
+  return Response.json({revoked:true,current},{headers});
+}
+async function revokeOtherAccountSessions(request,env){
+  const account=await authAccountFor(request,env);if(!account)return json({error:'로그인이 필요합니다.'},401);await env.DB.prepare('UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND id<>? AND revoked_at IS NULL').bind(now(),account.id,account.auth_session_id).run();return json({revoked:true});
+}
+async function accountDeletion(request,env){
+  const account=await authAccountFor(request,env);if(!account)return json({error:'로그인이 필요합니다.'},401);
+  const memberships=await env.DB.prepare(`SELECT m.id,m.trip_id,m.role,t.title FROM members m JOIN trips t ON t.id=m.trip_id WHERE m.account_id=? AND m.revoked_at IS NULL AND t.deleted_at IS NULL`).bind(account.id).all(),owned=memberships.results.filter(x=>x.role==='owner');
+  if(request.method==='GET')return json({ownedTrips:owned.map(x=>({id:x.trip_id,title:x.title})),sharedTrips:memberships.results.filter(x=>x.role!=='owner').map(x=>({id:x.trip_id,title:x.title,role:x.role})),canDelete:owned.length===0});
+  if(owned.length)return json({error:'소유한 여행의 소유권을 이전하거나 여행을 삭제한 뒤 계정을 삭제할 수 있습니다.',ownedTrips:owned.map(x=>({id:x.trip_id,title:x.title}))},409);
+  const stamp=now(),memberIds=memberships.results.map(x=>x.id),statements=[env.DB.prepare('UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL').bind(stamp,account.id)];
+  for(const memberId of memberIds)statements.push(env.DB.prepare('UPDATE sessions SET revoked_at=? WHERE member_id=? AND revoked_at IS NULL').bind(stamp,memberId),env.DB.prepare(`UPDATE members SET revoked_at=?,account_id=NULL,display_name='탈퇴한 사용자' WHERE id=?`).bind(stamp,memberId));
+  statements.push(env.DB.prepare('INSERT INTO auth_events (id,account_id,event_type,ip_hash,created_at) VALUES (?,?,?,?,?)').bind(id('aev'),account.id,'account_deleted',await hash(request.headers.get('CF-Connecting-IP')||'local'),stamp),env.DB.prepare('DELETE FROM accounts WHERE id=?').bind(account.id));await env.DB.batch(statements);
+  return new Response(null,{status:204,headers:{'Set-Cookie':secureCookie(AUTH_COOKIE,'',0),'Cache-Control':'no-store'}});
+}
 async function validMagic(file){const b=new Uint8Array(await file.slice(0,16).arrayBuffer());if(file.type==='application/pdf')return String.fromCharCode(...b.slice(0,5))==='%PDF-';if(file.type==='image/jpeg')return b[0]===0xff&&b[1]===0xd8&&b[2]===0xff;if(file.type==='image/png')return [137,80,78,71,13,10,26,10].every((x,i)=>b[i]===x);if(file.type==='image/webp')return String.fromCharCode(...b.slice(0,4))==='RIFF'&&String.fromCharCode(...b.slice(8,12))==='WEBP';return false}
 function sanitizeExtraction(raw){
   if(!raw||typeof raw!=='object')throw new Error('invalid');
@@ -155,11 +265,17 @@ async function createTrip(request,env){
   let body;try{body=await request.json()}catch{return json({error:'JSON 요청이 필요합니다.'},400)}
   let trip;try{trip=validateTrip(body.trip)}catch(e){return json({error:e.message},400)}
   if(await env.DB.prepare('SELECT id FROM trips WHERE id=?').bind(trip.id).first())return json({error:'이미 존재하는 여행입니다.'},409);
-  const token=randomToken(),memberId=id('mem'),sessionId=id('ses'),stamp=now(),device=deviceMeta(body);
+  const account=await authAccountFor(request,env),token=randomToken(),memberId=id('mem'),sessionId=id('ses'),stamp=now(),device=deviceMeta(body),displayName=account?.display_name||clean(body.displayName,80)||'나';
   for(const expense of trip.expenses){if(expense.paidByMemberId==='local:self')expense.paidByMemberId=memberId;expense.shareMemberIds=expense.shareMemberIds.map(value=>value==='local:self'?memberId:value)}
-  const statements=[env.DB.prepare(`INSERT INTO trips (id,title,start_date,end_date,note,cities_json,checklist_json,hero_file_id,revision,created_at,updated_at,base_currency,budget_minor,settled_at,settlement_fingerprint) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(trip.id,trip.title,trip.start,trip.end,trip.note,JSON.stringify(trip.cities),JSON.stringify(trip.checklist),trip.heroFileId||null,1,stamp,stamp,trip.expenseSettings.baseCurrency,trip.expenseSettings.budgetMinor,trip.expenseSettings.settledAt||null,trip.expenseSettings.settlementFingerprint||null),env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?)`).bind(memberId,trip.id,clean(body.displayName,80)||'나','owner',await hash(`member:${memberId}`),stamp,stamp),env.DB.prepare(`INSERT INTO sessions (id,member_id,token_hash,device_id,device_name,platform,client_type,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(sessionId,memberId,await hash(token),device.deviceId,device.deviceName,device.platform,device.clientType,stamp,stamp),...childStatements(env,trip,memberId),env.DB.prepare(`INSERT INTO trip_activity (id,trip_id,member_id,action,entity_type,entity_id,label,detail_json,created_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(id('act'),trip.id,memberId,'created','trip',trip.id,trip.title,'{}',stamp)];
-  try{await env.DB.batch(statements)}catch(error){console.error('create trip transaction failed',error);return json({error:'여행을 저장하지 못했습니다. 기존 데이터는 변경되지 않았습니다.'},500)}
-  return json({trip:await loadTrip(env,trip.id),accessToken:token,sessionId,memberId,role:'owner'},201);
+  const statements=[
+    env.DB.prepare(`INSERT INTO trips (id,title,start_date,end_date,note,cities_json,checklist_json,hero_file_id,revision,created_at,updated_at,base_currency,budget_minor,settled_at,settlement_fingerprint) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(trip.id,trip.title,trip.start,trip.end,trip.note,JSON.stringify(trip.cities),JSON.stringify(trip.checklist),trip.heroFileId||null,1,stamp,stamp,trip.expenseSettings.baseCurrency,trip.expenseSettings.budgetMinor,trip.expenseSettings.settledAt||null,trip.expenseSettings.settlementFingerprint||null),
+    env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at,account_id) VALUES (?,?,?,?,?,?,?,?)`).bind(memberId,trip.id,displayName,'owner',await hash(`member:${memberId}`),stamp,stamp,account?.id||null),
+    env.DB.prepare(`INSERT INTO sessions (id,member_id,token_hash,device_id,device_name,platform,client_type,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(sessionId,memberId,await hash(token),device.deviceId,device.deviceName,device.platform,device.clientType,stamp,stamp),
+    ...childStatements(env,trip,memberId),
+    env.DB.prepare(`INSERT INTO trip_activity (id,trip_id,member_id,action,entity_type,entity_id,label,detail_json,created_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(id('act'),trip.id,memberId,'created','trip',trip.id,trip.title,'{}',stamp)
+  ];
+  try{await env.DB.batch(statements)}catch(error){console.error('create trip transaction failed',{name:error?.name,message:clean(error?.message,160)});return json({error:'여행을 저장하지 못했습니다. 기존 데이터는 변경되지 않았습니다.'},500)}
+  return json({trip:await loadTrip(env,trip.id),accessToken:token,sessionId,memberId,role:'owner',accountLinked:Boolean(account)},201);
 }
 async function updateTrip(request,env,tripId,member){
   if(!canEdit(member))return json({error:'보기 전용 여행은 수정할 수 없습니다.'},403);
@@ -202,17 +318,21 @@ async function createInvite(request,env,tripId,member){
   await env.DB.prepare(`INSERT INTO invites (id,trip_id,token_hash,role,created_by_member_id,expires_at,created_at,max_uses,use_count) VALUES (?,?,?,?,?,?,?,?,0)`).bind(inviteId,tripId,await hash(token),role,member.id,expiresAt,stamp,singleUse?1:null).run();return json({id:inviteId,token,role,expiresAt,singleUse},201);
 }
 async function redeemInvite(request,env){
-  let body;try{body=await request.json()}catch{return json({error:'JSON 요청이 필요합니다.'},400)}const token=clean(body.token,200),stamp=now(),invite=token?await env.DB.prepare(`SELECT * FROM invites WHERE token_hash=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) AND (max_uses IS NULL OR use_count<max_uses)`).bind(await hash(token),stamp).first():null;
-  if(!invite)return json({error:'초대 링크가 만료되었거나 비활성화되었습니다.'},404);const accessToken=randomToken(),memberId=id('mem'),sessionId=id('ses'),device=deviceMeta(body);
-  const assertion=id('assert');try{await env.DB.batch([
+  let body;try{body=await request.json()}catch{return json({error:'JSON 요청이 필요합니다.'},400)}
+  const token=clean(body.token,200),stamp=now(),invite=token?await env.DB.prepare(`SELECT * FROM invites WHERE token_hash=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) AND (max_uses IS NULL OR use_count<max_uses)`).bind(await hash(token),stamp).first():null;
+  if(!invite)return json({error:'초대 링크가 만료되었거나 비활성화되었습니다.'},404);
+  const account=await authAccountFor(request,env),existing=account?await env.DB.prepare('SELECT id,role FROM members WHERE trip_id=? AND account_id=? AND revoked_at IS NULL').bind(invite.trip_id,account.id).first():null;
+  if(existing)return json({trip:await loadTrip(env,invite.trip_id,true),tripId:invite.trip_id,memberId:existing.id,role:existing.role,accountLinked:true,alreadyMember:true});
+  const accessToken=randomToken(),memberId=id('mem'),sessionId=id('ses'),device=deviceMeta(body),displayName=account?.display_name||clean(body.displayName,80)||'동행자',assertion=id('assert');
+  try{await env.DB.batch([
     env.DB.prepare(`UPDATE invites SET use_count=use_count+1,consumed_at=CASE WHEN max_uses=1 THEN ? ELSE consumed_at END,revoked_at=CASE WHEN max_uses=1 THEN ? ELSE revoked_at END WHERE id=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>?) AND (max_uses IS NULL OR use_count<max_uses)`).bind(stamp,stamp,invite.id,stamp),
     env.DB.prepare('INSERT INTO sync_assertions (id,value) VALUES (?,changes())').bind(assertion),
-    env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?)`).bind(memberId,invite.trip_id,clean(body.displayName,80)||'동행자',invite.role,await hash(`member:${memberId}`),stamp,stamp),
+    env.DB.prepare(`INSERT INTO members (id,trip_id,display_name,role,token_hash,created_at,last_seen_at,account_id) VALUES (?,?,?,?,?,?,?,?)`).bind(memberId,invite.trip_id,displayName,invite.role,await hash(`member:${memberId}`),stamp,stamp,account?.id||null),
     env.DB.prepare(`INSERT INTO sessions (id,member_id,token_hash,device_id,device_name,platform,client_type,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(sessionId,memberId,await hash(accessToken),device.deviceId,device.deviceName,device.platform,device.clientType,stamp,stamp),
-    accessActivityStatement(env,invite.trip_id,invite.created_by_member_id,{category:'member',action:'created',id:memberId,label:clean(body.displayName,80)||'동행자',fields:['role']},stamp),
+    accessActivityStatement(env,invite.trip_id,invite.created_by_member_id,{category:'member',action:'created',id:memberId,label:displayName,fields:['role']},stamp),
     env.DB.prepare('DELETE FROM sync_assertions WHERE id=?').bind(assertion)
   ])}catch{return json({error:'초대 링크가 이미 사용되었거나 비활성화되었습니다.'},409)}
-  return json({trip:await loadTrip(env,invite.trip_id,true),tripId:invite.trip_id,accessToken,sessionId,memberId,role:invite.role},201);
+  return json({trip:await loadTrip(env,invite.trip_id,true),tripId:invite.trip_id,accessToken,sessionId,memberId,role:invite.role,accountLinked:Boolean(account)},201);
 }
 async function previewInvite(request,env){
   let body;try{body=await request.json()}catch{return json({error:'초대 정보를 확인해 주세요.'},400)}
@@ -220,7 +340,7 @@ async function previewInvite(request,env){
   return invite?json({tripId:invite.trip_id,role:invite.role,expiresAt:invite.expires_at}):json({error:'초대 링크가 만료되었거나 비활성화되었습니다.'},404);
 }
 async function issueRecoveryKey(request,env,tripId,member){
-  if(member.role!=='owner')return json({error:'소유자만 소유권 복구키를 만들 수 있습니다.'},403);
+  if(member.role!=='owner')return json({error:'소유자만 긴급 복구 코드를 만들 수 있습니다.'},403);
   const key=recoveryKey(),stamp=now();
   await env.DB.prepare('UPDATE trips SET recovery_key_hash=?,recovery_key_created_at=? WHERE id=? AND deleted_at IS NULL').bind(await hash(normalizeRecoveryKey(key)),stamp,tripId).run();
   await securityEvent(request,env,tripId,'recovery_key_issued');
@@ -230,15 +350,21 @@ async function recoverTrip(request,env){
   let body;try{body=await request.json()}catch{return json({error:'복구 정보를 다시 입력해 주세요.'},400)}
   const tripId=clean(body.tripId,100),key=normalizeRecoveryKey(body.recoveryKey);
   if(await rateLimited(request,env,'recover-ip',30,900)||await rateLimited(request,env,`recover:${tripId||'unknown'}`,8,900)){await securityEvent(request,env,tripId,'recovery_rate_limited');return json({error:'복구 시도가 많습니다. 15분 뒤 다시 시도해 주세요.'},429)}
-  const trip=tripId?await env.DB.prepare('SELECT id,recovery_key_hash FROM trips WHERE id=? AND deleted_at IS NULL').bind(tripId).first():null;
-  const suppliedHash=await hash(key||'invalid'),valid=trip?.recovery_key_hash&&key.length===20&&constantEqual(suppliedHash,trip.recovery_key_hash);
-  if(!valid){await securityEvent(request,env,tripId,'recovery_failed');return json({error:'여행 정보 또는 소유권 복구키가 올바르지 않습니다.'},401)}
-  const owner=await env.DB.prepare(`SELECT id FROM members WHERE trip_id=? AND role='owner' AND revoked_at IS NULL ORDER BY created_at LIMIT 1`).bind(tripId).first();
+  const trip=tripId?await env.DB.prepare('SELECT id,recovery_key_hash FROM trips WHERE id=? AND deleted_at IS NULL').bind(tripId).first():null,suppliedHash=await hash(key||'invalid'),valid=trip?.recovery_key_hash&&key.length===20&&constantEqual(suppliedHash,trip.recovery_key_hash);
+  if(!valid){await securityEvent(request,env,tripId,'recovery_failed');return json({error:'여행 정보 또는 긴급 복구 코드가 올바르지 않습니다.'},401)}
+  const owner=await env.DB.prepare(`SELECT id,account_id FROM members WHERE trip_id=? AND role='owner' AND revoked_at IS NULL ORDER BY created_at LIMIT 1`).bind(tripId).first();
   if(!owner){await securityEvent(request,env,tripId,'recovery_blocked_no_owner');return json({error:'소유자 상태를 확인할 수 없어 복구를 중단했습니다.'},409)}
-  const accessToken=randomToken(),sessionId=id('ses'),stamp=now(),device=deviceMeta(body);
-  await env.DB.prepare(`INSERT INTO sessions (id,member_id,token_hash,device_id,device_name,platform,client_type,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(sessionId,owner.id,await hash(accessToken),device.deviceId,device.deviceName,device.platform,device.clientType,stamp,stamp).run();
-  await securityEvent(request,env,tripId,'recovery_succeeded');
-  return json({trip:await loadTrip(env,tripId,true),tripId,accessToken,sessionId,memberId:owner.id,role:'owner'},201);
+  const account=await authAccountFor(request,env);
+  if(account&&owner.account_id&&owner.account_id!==account.id&&body.confirmTransfer!==true)return json({error:'이 여행은 다른 계정에 연결되어 있습니다. 긴급 복구로 새 계정에 연결할지 확인해 주세요.',confirmationRequired:true},409);
+  const accessToken=randomToken(),sessionId=id('ses'),stamp=now(),device=deviceMeta(body),statements=[];
+  if(account){
+    const linked=await env.DB.prepare('SELECT id FROM members WHERE trip_id=? AND account_id=? AND id<>? AND revoked_at IS NULL').bind(tripId,account.id,owner.id).first();
+    if(linked)statements.push(env.DB.prepare('UPDATE sessions SET revoked_at=? WHERE member_id=? AND revoked_at IS NULL').bind(stamp,linked.id),env.DB.prepare('UPDATE members SET revoked_at=?,account_id=NULL WHERE id=?').bind(stamp,linked.id));
+    statements.push(env.DB.prepare('UPDATE members SET account_id=? WHERE id=? AND trip_id=?').bind(account.id,owner.id,tripId));
+  }
+  statements.push(env.DB.prepare(`INSERT INTO sessions (id,member_id,token_hash,device_id,device_name,platform,client_type,created_at,last_seen_at) VALUES (?,?,?,?,?,?,?,?,?)`).bind(sessionId,owner.id,await hash(accessToken),device.deviceId,device.deviceName,device.platform,device.clientType,stamp,stamp));
+  await env.DB.batch(statements);await securityEvent(request,env,tripId,'recovery_succeeded');if(account)await authEvent(request,env,'emergency_recovery_linked',account.id);
+  return json({trip:await loadTrip(env,tripId,true),tripId,accessToken,sessionId,memberId:owner.id,role:'owner',accountLinked:Boolean(account)},201);
 }
 async function accessList(env,tripId,currentSessionId,currentMemberId){
   const [m,i,s,t]=await Promise.all([
@@ -420,13 +546,41 @@ async function health(env){
 }
 async function api(request,env,url){
   if(url.pathname==='/api/health'&&request.method==='GET')return health(env);
-  if(url.pathname==='/api/weather'&&request.method==='GET')return weatherForecast(request,env,url);if(url.pathname==='/api/route'&&request.method==='GET')return routeForecast(request,env,url);if(url.pathname==='/api/exchange-rate'&&request.method==='GET')return exchangeRate(request,env,url);if(url.pathname==='/api/trips'&&request.method==='POST')return await rateLimited(request,env,'create-trip',30,86400)?json({error:'여행 생성 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):createTrip(request,env);if(url.pathname==='/api/invites/preview'&&request.method==='POST')return await rateLimited(request,env,'invite-preview',60,600)?json({error:'초대 확인 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):previewInvite(request,env);if(url.pathname==='/api/invites/redeem'&&request.method==='POST')return await rateLimited(request,env,'redeem',30,600)?json({error:'초대 확인 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):redeemInvite(request,env);if(url.pathname==='/api/recovery/redeem'&&request.method==='POST')return recoverTrip(request,env);if(url.pathname==='/api/device-links/redeem'&&request.method==='POST')return redeemDeviceLink(request,env);if(url.pathname==='/api/sessions/current'&&request.method==='DELETE')return revokeCurrentSession(request,env);
-  const match=url.pathname.match(/^\/api\/trips\/([^/]+)(?:\/(.*))?$/);if(!match)return json({error:'API 경로를 찾을 수 없습니다.'},404);const tripId=decodeURIComponent(match[1]),action=match[2]||'',member=await memberFor(request,env,tripId);if(!member)return json({error:'이 여행에 접근할 권한이 없습니다.'},401);
+  if(url.pathname==='/api/auth/config'&&request.method==='GET')return authConfig(env);
+  if(url.pathname==='/api/auth/google/start'&&request.method==='GET')return googleStart(request,env,url);
+  if(url.pathname==='/api/auth/google/callback'&&request.method==='GET')return googleCallback(request,env,url);
+  if(url.pathname==='/api/auth/me'&&request.method==='GET')return authMe(request,env);
+  if(url.pathname==='/api/auth/logout'&&request.method==='POST')return authLogout(request,env);
+  if(url.pathname==='/api/auth/trips'&&request.method==='GET')return accountTrips(request,env);
+  if(url.pathname==='/api/auth/sessions'&&request.method==='GET')return accountSessions(request,env);
+  if(url.pathname==='/api/auth/sessions'&&request.method==='DELETE'&&url.searchParams.get('others')==='1')return revokeOtherAccountSessions(request,env);
+  if(url.pathname==='/api/auth/account'&&['GET','DELETE'].includes(request.method))return accountDeletion(request,env);
+  const claim=url.pathname.match(/^\/api\/auth\/trips\/([^/]+)\/claim$/);if(claim&&request.method==='POST')return claimTrip(request,env,decodeURIComponent(claim[1]));
+  const authSession=url.pathname.match(/^\/api\/auth\/sessions\/([^/]+)$/);if(authSession&&request.method==='PATCH')return updateAccountSession(request,env,authSession[1]);if(authSession&&request.method==='DELETE')return revokeAccountSession(request,env,authSession[1]);
+  if(url.pathname==='/api/weather'&&request.method==='GET')return weatherForecast(request,env,url);
+  if(url.pathname==='/api/route'&&request.method==='GET')return routeForecast(request,env,url);
+  if(url.pathname==='/api/exchange-rate'&&request.method==='GET')return exchangeRate(request,env,url);
+  if(url.pathname==='/api/trips'&&request.method==='POST')return await rateLimited(request,env,'create-trip',30,86400)?json({error:'여행 생성 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):createTrip(request,env);
+  if(url.pathname==='/api/invites/preview'&&request.method==='POST')return await rateLimited(request,env,'invite-preview',60,600)?json({error:'초대 확인 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):previewInvite(request,env);
+  if(url.pathname==='/api/invites/redeem'&&request.method==='POST')return await rateLimited(request,env,'redeem',30,600)?json({error:'초대 확인 요청이 많습니다. 잠시 후 다시 시도해 주세요.'},429):redeemInvite(request,env);
+  if(url.pathname==='/api/recovery/redeem'&&request.method==='POST')return recoverTrip(request,env);
+  if(url.pathname==='/api/device-links/redeem'&&request.method==='POST')return redeemDeviceLink(request,env);
+  const match=url.pathname.match(/^\/api\/trips\/([^/]+)(?:\/(.*))?$/);if(!match)return json({error:'API 경로를 찾을 수 없습니다.'},404);
+  const tripId=decodeURIComponent(match[1]),action=match[2]||'',member=await memberFor(request,env,tripId);if(!member)return json({error:'이 여행에 접근할 권한이 없습니다.'},401);
   if(action==='hero'&&['GET','PUT','DELETE'].includes(request.method))return tripHero(request,env,tripId,member);
-  if(!action&&request.method==='GET')return json({trip:await loadTrip(env,tripId,true),memberId:member.id,role:member.role});if(!action&&request.method==='PUT')return updateTrip(request,env,tripId,member);
-  if(!action&&request.method==='DELETE'){if(member.role!=='owner')return json({error:'소유자만 여행을 삭제할 수 있습니다.'},403);await env.DB.batch([env.DB.prepare('DELETE FROM trip_hero_images WHERE trip_id=?').bind(tripId),env.DB.prepare('UPDATE trips SET deleted_at=?,updated_at=? WHERE id=?').bind(now(),now(),tripId)]);return new Response(null,{status:204})}
-  if(action==='invites'&&request.method==='POST')return createInvite(request,env,tripId,member);if(action==='access'&&request.method==='GET')return json(await accessOverview(env,tripId,member));if(action==='me'&&request.method==='GET')return json(await selfAccess(env,tripId,member));if(action==='me'&&request.method==='PATCH')return updateSelf(request,env,member);if(action==='me'&&request.method==='DELETE')return leaveTrip(env,tripId,member);if(action==='me/device-code'&&request.method==='POST')return issueDeviceLink(request,env,tripId,member);if(action==='recovery-key'&&request.method==='POST')return issueRecoveryKey(request,env,tripId,member);
-  if(action==='activity'&&request.method==='GET')return json(await activityList(env,tripId));if(action==='trash'&&request.method==='GET')return json(await trashList(env,tripId));if(action==='trash'&&request.method==='DELETE')return emptyTrash(env,tripId,member);
+  if(!action&&request.method==='GET')return json({trip:await loadTrip(env,tripId,true),memberId:member.id,role:member.role});
+  if(!action&&request.method==='PUT')return updateTrip(request,env,tripId,member);
+  if(!action&&request.method==='DELETE'){if(member.role!=='owner')return json({error:'소유자만 여행을 삭제할 수 있습니다.'},403);await env.DB.prepare('DELETE FROM trips WHERE id=?').bind(tripId).run();return new Response(null,{status:204})}
+  if(action==='invites'&&request.method==='POST')return createInvite(request,env,tripId,member);
+  if(action==='access'&&request.method==='GET')return json(await accessOverview(env,tripId,member));
+  if(action==='me'&&request.method==='GET')return json(await selfAccess(env,tripId,member));
+  if(action==='me'&&request.method==='PATCH')return updateSelf(request,env,member);
+  if(action==='me'&&request.method==='DELETE')return leaveTrip(env,tripId,member);
+  if(action==='me/device-code'&&request.method==='POST')return issueDeviceLink(request,env,tripId,member);
+  if(action==='recovery-key'&&request.method==='POST')return issueRecoveryKey(request,env,tripId,member);
+  if(action==='activity'&&request.method==='GET')return json(await activityList(env,tripId));
+  if(action==='trash'&&request.method==='GET')return json(await trashList(env,tripId));
+  if(action==='trash'&&request.method==='DELETE')return emptyTrash(env,tripId,member);
   const ri=action.match(/^invites\/([^/]+)$/),rm=action.match(/^members\/([^/]+)$/),rs=action.match(/^sessions\/([^/]+)$/),rt=action.match(/^members\/([^/]+)\/transfer$/),rr=action.match(/^trash\/([^/]+)\/restore$/);
   if(ri&&request.method==='DELETE'){if(member.role!=='owner')return json({error:'소유자만 초대 링크를 취소할 수 있습니다.'},403);await env.DB.prepare('UPDATE invites SET revoked_at=? WHERE id=? AND trip_id=?').bind(now(),ri[1],tripId).run();return new Response(null,{status:204})}
   if(rt&&request.method==='POST')return transferOwnership(request,env,tripId,member,rt[1]);
@@ -437,5 +591,32 @@ async function api(request,env,url){
   if(rr&&request.method==='POST')return restoreTrash(env,tripId,member,rr[1]);
   return json({error:'지원하지 않는 요청입니다.'},405)
 }
+async function purgeExpired(env){const stamp=now(),monthAgo=new Date(Date.now()-30*86400000).toISOString(),sixMonthsAgo=new Date(Date.now()-180*86400000).toISOString();await env.DB.batch([env.DB.prepare('DELETE FROM oauth_transactions WHERE expires_at<?').bind(stamp),env.DB.prepare('DELETE FROM rate_limits WHERE window_ends_at<?').bind(Date.now()),env.DB.prepare('DELETE FROM auth_sessions WHERE expires_at<? OR (revoked_at IS NOT NULL AND revoked_at<?)').bind(stamp,monthAgo),env.DB.prepare('DELETE FROM sessions WHERE revoked_at IS NOT NULL AND revoked_at<?').bind(monthAgo),env.DB.prepare('DELETE FROM auth_events WHERE created_at<?').bind(sixMonthsAgo),env.DB.prepare('DELETE FROM security_events WHERE created_at<?').bind(sixMonthsAgo)])}
+export default{
+  async fetch(request,env){
+    const url=new URL(request.url);
+    try{
+      if(url.pathname.startsWith('/api/map-tile/'))return request.method==='GET'?mapTile(url):new Response('Method not allowed',{status:405});
+      if(url.pathname==='/api/analyze-document')return request.method==='POST'?analyzeDocument(request,env):json({error:'지원하지 않는 요청입니다.'},405);
+      if(url.pathname.startsWith('/api/'))return api(request,env,url);
+    }catch(error){
+      console.error('request failed',{name:error?.name,message:clean(error?.message,160)});
+      return json({error:'요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'},500);
+    }
+    const prettyPath=request.method==='GET'||request.method==='HEAD'?{privacy:'/privacy.html',terms:'/terms.html',offline:'/offline.html'}[url.pathname.slice(1)]:null;
+    const legalPath=url.pathname==='/privacy'||url.pathname==='/terms';
+    if(prettyPath)url.pathname=prettyPath;
+    const response=await env.ASSETS.fetch(prettyPath?new Request(url,request):request),headers=new Headers(response.headers);
+    headers.set('X-Content-Type-Options','nosniff');
+    headers.set('Referrer-Policy','strict-origin-when-cross-origin');
+    if(legalPath){
+      headers.set('Cache-Control','public, max-age=3600');
+      headers.set('Content-Security-Policy',"default-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'; frame-ancestors 'none'");
+    }
+    if(url.pathname==='/sw.js'){headers.set('Cache-Control','no-cache');headers.set('Service-Worker-Allowed','/')}
+    if(url.pathname==='/manifest.webmanifest'){headers.set('Content-Type','application/manifest+json; charset=utf-8');headers.set('Cache-Control','public, max-age=3600')}
+    return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+  },
+  async scheduled(_controller,env,ctx){ctx.waitUntil(purgeExpired(env))}
+};
 
-export default{async fetch(request,env){const url=new URL(request.url);try{if(url.pathname.startsWith('/api/map-tile/'))return request.method==='GET'?mapTile(url):new Response('Method not allowed',{status:405});if(url.pathname==='/api/analyze-document')return request.method==='POST'?analyzeDocument(request,env):json({error:'지원하지 않는 요청입니다.'},405);if(url.pathname.startsWith('/api/'))return api(request,env,url)}catch(error){console.error('request failed',error);return json({error:'요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'},500)}const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','strict-origin-when-cross-origin');if(url.pathname==='/sw.js'){headers.set('Cache-Control','no-cache');headers.set('Service-Worker-Allowed','/')}if(url.pathname==='/manifest.webmanifest'){headers.set('Content-Type','application/manifest+json; charset=utf-8');headers.set('Cache-Control','public, max-age=3600')}return new Response(response.body,{status:response.status,statusText:response.statusText,headers})}};
