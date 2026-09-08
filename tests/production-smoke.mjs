@@ -44,18 +44,14 @@ try {
   assert.equal((await call(`/api/trips/${id}/invites`, { method: 'POST', token: editorJoin.data.accessToken, body: { role: 'viewer' } })).response.status, 403);
   assert.equal((await call(`/api/trips/${id}`, { method: 'PUT', token: viewerJoin.data.accessToken, body: { trip, baseRevision: 1 } })).response.status, 403);
   const recovery = await call(`/api/trips/${id}/recovery-key`, { method: 'POST', token: owner, body: {} });
-  assert.equal(recovery.response.status, 201);
-  const recovered = await call('/api/recovery/redeem', { method: 'POST', body: { tripId: id, recoveryKey: recovery.data.recoveryKey, deviceId: 'smoke-recovered', deviceName: '복구 검증 기기', platform: 'iOS', clientType: 'pwa' } });
-  assert.equal(recovered.response.status, 201);
+  assert.equal(recovery.response.status, 410);
   assert.equal((await call(`/api/trips/${id}`, { token: owner })).response.status, 200);
-  assert.equal((await call(`/api/trips/${id}/sessions/${recovered.data.sessionId}`, { method: 'DELETE', token: owner })).response.status, 200);
-  assert.equal((await call(`/api/trips/${id}`, { token: recovered.data.accessToken })).response.status, 401);
   const changed = structuredClone(trip); changed.note = '첫 번째 저장';
   assert.equal((await call(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip: changed, baseRevision: 1 } })).response.status, 200);
   const conflict = await call(`/api/trips/${id}`, { method: 'PUT', token: owner, body: { trip, baseRevision: 1 } });
   assert.equal(conflict.response.status, 409);
   assert.equal(conflict.data.trip.note, '첫 번째 저장');
-  console.log('production device-link, multi-device, permissions, recovery and sync smoke passed');
+  console.log('production device-link, multi-device, permissions, disabled recovery issuance and sync smoke passed');
 } finally {
   if (owner) await call(`/api/trips/${id}`, { method: 'DELETE', token: owner });
 }
