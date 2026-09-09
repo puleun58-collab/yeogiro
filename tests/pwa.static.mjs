@@ -16,8 +16,10 @@ assert.match(source, /'\/pwa-update\.js\?v=\d+'/, 'update gating logic remains a
 assert.match(source, /'\/trip-recap-logic\.js\?v=\d+'/, 'trip recap logic remains available offline');
 assert.match(source, /'\/assets\/icons\/browser-chrome\.svg'[\s\S]*'\/assets\/icons\/browser-safari\.svg'/, '브라우저 로고도 설치 안내와 함께 오프라인 캐시');
 assert.match(source, /'\/assets\/icons\/storage-status\/storage-schedule-sync\.png'[\s\S]*'\/assets\/icons\/diagnostics\/diagnostics-error\.png'/, '보관 상태와 진단 아이콘을 오프라인 캐시');
+assert.match(source, /'\/assets\/icons\/categories\/flight\.png'[\s\S]*'\/assets\/icons\/categories\/other\.png'/, '일정 카테고리 아이콘 여덟 개를 오프라인 캐시');
+assert.match(source, /'\/assets\/icons\/update\/app-version\.png'[\s\S]*'\/assets\/icons\/update\/server-saved\.png'/, '앱 업데이트 상태 아이콘 두 개를 오프라인 캐시');
 assert.match(source, /appCode \? networkFirst\(request\) : cacheFirst\(request, APP_CACHE\)/, 'online app code bypasses stale cache entries');
 assert.doesNotMatch(source.match(/self\.addEventListener\('install'[\s\S]*?\n\}\);/)?.[0] || '', /skipWaiting/, 'new worker waits for explicit user activation');
 assert.match(source, /event\.data\?\.type === 'SKIP_WAITING'/, 'waiting worker accepts explicit activation message');
 assert.doesNotMatch(source, /indexedDB|localStorage/, 'service worker updates never mutate user data stores');
-console.log('18 PWA cache checks passed');
+console.log('20 PWA cache checks passed');

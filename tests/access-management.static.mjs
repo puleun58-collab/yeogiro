@@ -108,6 +108,10 @@ assert.match(source, /protectionState=[\s\S]*\['설정됨'[\s\S]*\['설정 필�
 assert.match(source, /row\('\/assets\/icons\/storage-status\/storage-file-settings\.png','파일 보관 설정'[\s\S]*data-safety-protect>보관 설정/, '파일 보관 설정의 제목과 버튼 문구 통일');
 assert.doesNotMatch(source, /기기 저장공간|기기 보관 보호|기기 보관 보호하기|파일 보관 보호/, '중복 명사와 오해하기 쉬운 이전 보관 문구 제거');
 assert.match(source, /function appUpdateSheet[\s\S]*data-update-apply>지금 업데이트/, '새 버전 상태와 데이터 보존 안내 화면 제공');
+const appUpdateSource = source.match(/function appUpdateSheet[\s\S]*?async function checkAppUpdate/)?.[0] || '';
+assert.match(appUpdateSource, /\/assets\/icons\/update\/app-version\.png[\s\S]*현재 버전[\s\S]*APP_BUILD/, '현재 버전 행은 패키지 업데이트 asset과 기존 버전 상태 유지');
+assert.match(appUpdateSource, /\/assets\/icons\/update\/server-saved\.png[\s\S]*서버 저장[\s\S]*저장 완료/, '서버 저장 행은 저장 완료 asset과 기존 상태값 유지');
+assert.doesNotMatch(appUpdateSource, /↻|☁️/, '앱 업데이트의 임시 refresh·cloud 이모지 제거');
 assert.doesNotMatch(source, /\.review-callout(?:\.[^{,]+)?(?:,[^{]+)?\{[^}]*border-left/, '안내·경고 카드의 장식성 왼쪽 세로선 제거');
 assert.match(source, /\.review-callout\.reset-warning\{background:var\(--surface-muted\)\}/, '전체 초기화 안내 박스는 neutral 배경 유지');
 assert.match(source, /class="danger-action" data-confirm-reset[^>]*>데이터를 내보내지 않고 전체 초기화/, '실제 초기화 버튼의 danger 강조 유지');
@@ -124,4 +128,4 @@ assert.match(source, /function flightDetails[\s\S]*항공편 상세[\s\S]*flight
 assert.match(worker, /flights 배열에 실제 운항 구간별 객체를 순서대로 나눈다/, 'AI에 실제 운항 구간별 분리 지시');
 assert.match(worker, /flightSource\.slice\(0,8\)\.map\(flightValue\)/, '서버에서 다중 항공편을 제한·정규화');
 
-console.log('122 access management and extraction UI checks passed');
+console.log('125 access management and extraction UI checks passed');

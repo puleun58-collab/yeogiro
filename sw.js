@@ -1,4 +1,4 @@
-const APP_CACHE = 'yeogiro-app-v86';
+const APP_CACHE = 'yeogiro-app-v87';
 const MAP_CACHE = 'yeogiro-map-v3';
 const MAX_MAP_ENTRIES = 160;
 const APP_SHELL = [
@@ -57,6 +57,16 @@ const APP_SHELL = [
   '/assets/icons/diagnostics/diagnostics-device-storage.png',
   '/assets/icons/diagnostics/diagnostics-api-d1.png',
   '/assets/icons/diagnostics/diagnostics-error.png',
+  '/assets/icons/categories/flight.png',
+  '/assets/icons/categories/lodging.png',
+  '/assets/icons/categories/restaurant.png',
+  '/assets/icons/categories/cafe.png',
+  '/assets/icons/categories/attraction.png',
+  '/assets/icons/categories/transport.png',
+  '/assets/icons/categories/shopping.png',
+  '/assets/icons/categories/other.png',
+  '/assets/icons/update/app-version.png',
+  '/assets/icons/update/server-saved.png',
   '/assets/fonts/LINESeedKR-Regular.woff2',
   '/assets/fonts/LINESeedKR-Bold.woff2'
 ];
