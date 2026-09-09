@@ -23,3 +23,14 @@ Desktop.ini
 node_modules/
 dist/
 .wrangler/
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+*.pem
+*.key
+*.p12
+*.pfx
